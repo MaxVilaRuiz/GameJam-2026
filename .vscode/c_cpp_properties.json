@@ -1,0 +1,59 @@
+{
+    "version": 4,
+    "configurations": [
+        {
+            "name": "macOS",
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "macos-clang-x64",
+            "includePath": [
+                "${workspaceFolder}/**",
+
+                "/opt/homebrew/include",
+                "/opt/homebrew/include/SDL2"
+            ],
+            "defines": [
+                "SDL_MAIN_HANDLED"
+            ]
+        },
+        {
+            "name": "Linux",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64",
+            "includePath": [
+                "${workspaceFolder}/**",
+
+                "/usr/include",
+                "/usr/include/SDL2",
+
+                "/usr/local/include",
+                "/usr/local/include/SDL2"
+            ],
+            "defines": [
+                "SDL_MAIN_HANDLED"
+            ]
+        },
+        {
+            "name": "Windows",
+            "compilerPath": "C:/msys64/mingw64/bin/gcc.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-clang-x64",
+            "includePath": [
+                "${workspaceFolder}/**",
+
+                "C:/libs/SDL2/include",
+                "C:/libs/SDL2/include/SDL2",
+                "C:/libs/SDL2_image/include",
+                "C:/libs/SDL2_image/include/SDL2"
+            ],
+            "defines": [
+                "SDL_MAIN_HANDLED",
+                "_CRT_SECURE_NO_WARNINGS"
+            ]
+        }
+    ]
+}

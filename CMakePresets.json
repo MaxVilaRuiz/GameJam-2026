@@ -1,0 +1,14 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 19, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default: Unix Makefiles",
+      "description": "Configure project using Unix Makefiles generator and build directory 'build'",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build",
+      "hidden": false
+    }
+  ]
+}
