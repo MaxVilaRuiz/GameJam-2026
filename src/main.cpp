@@ -1,6 +1,7 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <iostream>
+#include <vector>
 
 const int WINDOW_HEIGHT = 1080;
 const int WINDOW_WIDTH = 1920;
@@ -16,10 +17,145 @@ class Player
 {
 private:
     SDL_Texture* texture;
+    SDL_Texture* aim_target;
+
+    SDL_Rect aimTargetRect;
     SDL_Rect destRect;
+
+    bool aimTargetReady = false;
 
     float posX, posY;
     const float speed = 250.0f;
+
+    float aimPosX, aimPosY;
+    const int aimRange = 250;
+
+    std::vector<int> maskLvl = {0, 0, 0, 0};
+    int primaryMask = -1;
+    int secondaryMask = -1;
+
+    void Movement(double deltaTime)
+    {
+        // MOVEMENT
+        if(controller)
+        {
+            Sint16 lx = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
+            Sint16 ly = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY);
+
+            const float deadzone = 8000.0f / 32767.0f;
+            float nx = lx / 32767.0f;
+            float ny = ly / 32767.0f;
+            float mag = sqrtf(nx * nx + ny * ny);
+
+            if(mag > deadzone)
+            {
+                float scaledMag = (mag - deadzone) / (1.0f - deadzone);
+                if(scaledMag > 1.0f) scaledMag = 1.0f;
+
+                float dirx = nx / mag;
+                float diry = ny / mag;
+
+                float scaled = scaledMag * speed * deltaTime;
+
+                posX += dirx * scaled;
+                posY += diry * scaled;
+
+                destRect.x = (int)posX;
+                destRect.y = (int)posY;
+            }
+        }
+        else
+        {
+            const Uint8* state = SDL_GetKeyboardState(NULL);
+            int xdir = 0;
+            int ydir = 0;
+            if (state[SDL_SCANCODE_W] || state[SDL_SCANCODE_UP])    ydir -= 1;
+            if (state[SDL_SCANCODE_S] || state[SDL_SCANCODE_DOWN])  ydir += 1;
+            if (state[SDL_SCANCODE_A] || state[SDL_SCANCODE_LEFT])  xdir -= 1;
+            if (state[SDL_SCANCODE_D] || state[SDL_SCANCODE_RIGHT]) xdir += 1;
+            
+            float fx = (float)xdir;
+            float fy = (float)ydir;
+
+            float lennorm = sqrt(fx * fx + fy * fy);
+
+            if(lennorm > 0.0)
+            {
+                fx /= lennorm;
+                fy /= lennorm;
+                
+                posX += fx * speed * deltaTime;
+                posY += fy * speed * deltaTime;
+
+                destRect.x = (int)posX;
+                destRect.y = (int)posY;
+            }
+        }
+    }
+
+    void Aim()
+    {
+        // AIM
+        if(controller)
+        {
+            Sint16 rx = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
+            Sint16 ry = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
+
+            const float deadzone = 8000.0f / 32767.0f;
+            float nx = rx / 32767.0f;
+            float ny = ry / 32767.0f;
+            float mag = sqrtf(nx * nx + ny * ny);
+
+            if(mag > deadzone)
+            {
+                aimTargetReady = true;
+
+                float scaledMag = (mag - deadzone) / (1.0f - deadzone);
+                if(scaledMag > 1.0f) scaledMag = 1.0f;
+
+                float dirx = nx / mag;
+                float diry = ny / mag;
+
+                float scaled = scaledMag * aimRange;
+
+                aimPosX = destRect.x + dirx * scaled;
+                aimPosY = destRect.y + diry * scaled;
+
+                aimTargetRect.x = (int)aimPosX;
+                aimTargetRect.y = (int)aimPosY;
+            }
+            else
+            {
+                aimTargetReady = false;
+            }
+        }
+        else
+        {
+            int mouseX, mouseY;
+            SDL_GetMouseState(&mouseX, &mouseY);
+
+            float deltaMouseX = (float)mouseX - (destRect.x + destRect.w * 0.5f);
+            float deltaMouseY = (float)mouseY - (destRect.y + destRect.h * 0.5f);
+            float mDirMag = sqrtf(deltaMouseX * deltaMouseX + deltaMouseY * deltaMouseY);
+
+            if(mDirMag > 0.01f)
+            {
+                float dirX = mDirMag > aimRange ? deltaMouseX / mDirMag : deltaMouseX / aimRange;
+                float dirY = mDirMag > aimRange ? deltaMouseY / mDirMag : deltaMouseY / aimRange;
+
+                aimPosX = (destRect.x + destRect.w * 0.5f) + dirX * (float)aimRange;
+                aimPosY = (destRect.y + destRect.h * 0.5f) + dirY * (float)aimRange;
+
+                aimTargetRect.x = (int)aimPosX - aimTargetRect.w / 2;
+                aimTargetRect.y = (int)aimPosY - aimTargetRect.h / 2;
+                aimTargetReady = true;
+            }
+            else
+            {
+                aimTargetReady = false;
+            }
+        }
+    }
 
 public:
     Player()
@@ -28,6 +164,11 @@ public:
         texture = SDL_CreateTextureFromSurface(renderer, temp);
         SDL_FreeSurface(temp);
 
+        temp = IMG_Load("../assets/aim.png");
+        aim_target = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
+
+        aimTargetRect = {0, 0, 64, 64};
         destRect = {0, 0, 64, 64};
         posX = (float)destRect.x;
         posY = (float)destRect.y;
@@ -35,47 +176,13 @@ public:
 
     void Update(double deltaTime)
     {
-        const Uint8* state = SDL_GetKeyboardState(NULL);
-        int xdir = 0;
-        int ydir = 0;
-        if (state[SDL_SCANCODE_W] || state[SDL_SCANCODE_UP])    ydir -= 1;
-        if (state[SDL_SCANCODE_S] || state[SDL_SCANCODE_DOWN])  ydir += 1;
-        if (state[SDL_SCANCODE_A] || state[SDL_SCANCODE_LEFT])  xdir -= 1;
-        if (state[SDL_SCANCODE_D] || state[SDL_SCANCODE_RIGHT]) xdir += 1;
-        
-        float fx = (float)xdir;
-        float fy = (float)ydir;
-
-        if(controller)
-        {
-            Sint16 lx = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
-            Sint16 ly = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY);
-
-            float deadzone = 8000.0f;
-            if(abs(lx) > deadzone || abs(ly) > deadzone)
-            {
-                fx = (abs(lx) > deadzone) ? lx / 32767.0f : 0.0f;
-                fy = (abs(ly) > deadzone) ? ly / 32767.0f : 0.0f;
-            }
-        }
-
-        float lennorm = sqrt(fx * fx + fy * fy);
-
-        if(lennorm > 0.0)
-        {
-            fx /= lennorm;
-            fy /= lennorm;
-            
-            posX += fx * speed * deltaTime;
-            posY += fy * speed * deltaTime;
-
-            destRect.x = (int)posX;
-            destRect.y = (int)posY;
-        }
+        Movement(deltaTime);
+        Aim();
     }
 
     void Render()
     {
+        if(aimTargetReady) SDL_RenderCopy(renderer, aim_target, NULL, &aimTargetRect);
         SDL_RenderCopy(renderer, texture, NULL, &destRect);
     }
 };
@@ -120,7 +227,9 @@ int main()
         return 1;
     }
 
-    window = SDL_CreateWindow("MASK", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE);
+    SDL_Rect displayBounds;
+    SDL_GetDisplayUsableBounds(0, &displayBounds);
+    window = SDL_CreateWindow("MASK", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, displayBounds.w, displayBounds.h, SDL_WINDOW_FULLSCREEN_DESKTOP);
 
     if(!window)
     {
