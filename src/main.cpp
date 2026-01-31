@@ -157,7 +157,7 @@ public:
         int dx = destRect.x - playerPos.first;
         int dy = destRect.y - playerPos.second;
         float mag = sqrtf(dx * dx + dy * dy);
-        if(mag <= 280) inPlayerRange = true;
+        if(mag <= 400) inPlayerRange = true;
         else inPlayerRange = false;
     }
 
@@ -619,8 +619,7 @@ int main()
 
     Player* player = new Player();
     Tilemap* tilemap = new Tilemap();
-    Enemy* enemy = new Enemy();
-    enemies.push_back(enemy);
+    enemies.push_back(new Enemy());
     
     UI* canvas = new UI();
 
@@ -652,50 +651,53 @@ int main()
         }
 
         player->Update(deltaTime);
-        if (enemy) enemy->Update(deltaTime);
+        
 
         for(auto it = enemies.begin(); it != enemies.end(); )
         {
-            (*it)->Update(deltaTime);
-            if(!(*it)->IsAlive())
+            Enemy* CurrentEnemy = *it;
+
+            if (CurrentEnemy->IsNearPlayer()) {
+                if(SDL_HasIntersection(CurrentEnemy->EnemyRect(), player->PlayerRect()) && player->GetCurrentHealth() > 0)
+                {
+                    player->TakeDamage(1);
+                    canvas->SetHearts(player->GetCurrentHealth());
+                }
+            }
+            (CurrentEnemy)->Update(deltaTime);
+
+            if(!(CurrentEnemy)->IsAlive())
             {
-                delete *it;
+                delete CurrentEnemy;
                 it = enemies.erase(it);
             }
             else ++it;
         }
-
-        if(enemy && enemy->IsNearPlayer())
-        {   
-            if(SDL_HasIntersection(enemy->EnemyRect(), player->PlayerRect()) && player->GetCurrentHealth() > 0)
-            {
-                player->TakeDamage(1);
-                canvas->SetHearts(player->GetCurrentHealth());
-            }
-
-            /*if(player->GetCurrentHealth() <= 0)
-            {
-                running = false;
-            }*/
-        }
+        
 
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
 
         tilemap->Render();
         player->Render();
-        if (enemy) enemy->Render();
+
+        for (auto e : enemies) e->Render();
+        
         canvas->Render();
 
-
         SDL_RenderPresent(renderer);
+        }
+
+        delete(player);
+        delete(tilemap);
+    
+        for (auto e : enemies) delete (e);
+        enemies.clear();    
+        
+    
+        delete(canvas);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
     }
 
-    free(player);
-    free(tilemap);
-    free(enemy);
-    free(canvas);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-}
