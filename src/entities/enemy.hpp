@@ -6,7 +6,7 @@
 #include <vector>
 #include <queue>
 
-#include "global.hpp"
+#include "../globals/global.hpp"
 
 class Enemy
 {

@@ -1,5 +1,5 @@
 #include "global.hpp"
-#include "enemy.hpp"
+#include "../entities/enemy.hpp"
 
 SDL_Window* window = nullptr;
 SDL_Renderer* renderer = nullptr;
