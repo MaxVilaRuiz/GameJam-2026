@@ -111,11 +111,6 @@ public:
 
     std::vector<std::vector<bool>> visited(16, std::vector<bool>(24, false));
 
-    
-
-
-
-
     visited[startY][startX] = true; 
     
     std::vector<std::vector<std::pair<int, int>>> parent(16, std::vector<std::pair<int, int>>(24, {startX, startY}));
@@ -201,6 +196,33 @@ public:
 
 std::vector<Enemy*> enemies;
 
+class FireAttack1
+{
+private:
+    SDL_Texture* texture;
+    SDL_Rect rect;
+public:
+    FireAttack1(SDL_Rect spawnRect, SDL_Rect DirectionRect)
+    {
+        SDL_Surface* temp = IMG_Load("../assets/p_fire_f1.png");
+        texture = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
+        rect = spawnRect;
+    }
+
+    ~FireAttack1()
+    {
+        if(texture) SDL_DestroyTexture(texture);
+    }
+
+    bool IsAlive() const { return rect.x < -10 | rect.y < -10 | rect.x > 2250 | rect.y > 1250; } 
+
+    void Update()
+    {
+        
+    }
+};
+
 class EarthAttack1
 {
 private:
@@ -247,31 +269,13 @@ public:
     }
 };
 
-<<<<<<< Updated upstream
-
-
-class FireAttack1
-=======
 class EarthAttack2
->>>>>>> Stashed changes
 {
 private:
     SDL_Texture* texture;
     SDL_Rect rect;
 
-<<<<<<< Updated upstream
-    //pair<int, int> dirf;
 
-public:
-
-    FireAttack1(SDL_Rect spawnRect, SDL_Rect DirectionRect)
-    {
-        SDL_Surface* temp = IMG_Load("../assets/p_fire_f1.png");
-        texture = SDL_CreateTextureFromSurface(renderer, temp);
-        SDL_FreeSurface(temp);
-        rect = spawnRect;
-        
-=======
     float BASE_DURATION = 10.0f;
     float currentTime;
 
@@ -302,34 +306,16 @@ public:
                 map[ty][tx] = 2;
             }
         }
->>>>>>> Stashed changes
         
         for (int i = 0; i < enemies.size(); ++i) {
             if (enemies[i]->InPlayerRange()) {
                 if (SDL_HasIntersection(enemies[i]->EnemyRect(), &rect)) {
-<<<<<<< Updated upstream
-                    enemies[i]->TakeDamage(1);
-=======
                     enemies[i]->TakeDamage(2); // Change??
->>>>>>> Stashed changes
                 }
             }
         }
     }
 
-<<<<<<< Updated upstream
-    ~FireAttack1()
-    {
-        if(texture) SDL_DestroyTexture(texture);
-    }
-
-    bool IsAlive() const { return rect.x < -10 | rect.y < -10 | rect.x > 2250 | rect.y > 1250; } 
-
-    void Update()
-    {
-
-        
-=======
     ~EarthAttack2()
     {
         if(texture) SDL_DestroyTexture(texture);
@@ -347,7 +333,6 @@ public:
     void Update(double deltaTime)
     {
         currentTime -= deltaTime;
->>>>>>> Stashed changes
     }
 
     void Render()
@@ -356,10 +341,6 @@ public:
     }
 };
 
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 class Player
 {
 private:
@@ -386,13 +367,9 @@ private:
     int primaryMask = 0;
     int secondaryMask = -1;
 
-<<<<<<< Updated upstream
-    std::vector<EarthAttack1*> attacksEarth;
     std::vector<FireAttack1*> attacksFire;
-=======
     std::vector<EarthAttack1*> ePrimaryAttacks;
     std::vector<EarthAttack2*> eSecondaryAttacks;
->>>>>>> Stashed changes
     float primaryCooldownEarth = 0.0f;
     float PRIMARY_COOLDOWN_TIME_EARTH = 0.4f;
     float primaryCooldownFire = 0.0f;
@@ -402,8 +379,6 @@ private:
     float primaryCooldownWater = 0.0f;
     float PRIMARY_COOLDOWN_TIME_WATER = 0.4f;
 
-<<<<<<< Updated upstream
-=======
     float secondaryCooldownEarth = 0.0f;
     float SECONDARY_COOLDOWN_TIME_EARTH = 5.0f;
 
@@ -413,7 +388,6 @@ private:
     const int offsetX = 40;
     const int offsetY = 0;
 
->>>>>>> Stashed changes
     std::vector<SDL_Texture*> maskSprites()
     {
         std::vector<SDL_Texture*> sprites(4);
@@ -563,11 +537,7 @@ private:
             int esize = 64;
             if(maskLvl[0] >=3) esize += 25;
             
-<<<<<<< Updated upstream
-            attacksEarth.push_back(new EarthAttack1({aimTargetRect.x - (esize - 64)/2, aimTargetRect.y - (esize - 64)/2 , esize, esize}));
-=======
             ePrimaryAttacks.push_back(new EarthAttack1({aimTargetRect.x - (esize - 64)/2, aimTargetRect.y - (esize - 64)/2 , esize, esize}));
->>>>>>> Stashed changes
             primaryCooldownEarth = PRIMARY_COOLDOWN_TIME_EARTH;
         }
         else if (primaryMask == 1 && primaryCooldownFire <= 0.0f && aimTargetReady){
@@ -614,13 +584,10 @@ public:
     {
         if(texture) SDL_DestroyTexture(texture);
         if(aim_target) SDL_DestroyTexture(aim_target);
-<<<<<<< Updated upstream
-        for(auto* a : attacksEarth) delete a;
-        attacksEarth.clear();
-=======
         for(auto* a : ePrimaryAttacks) delete a;
         ePrimaryAttacks.clear();
->>>>>>> Stashed changes
+        for(auto* a : eSecondaryAttacks) delete a;
+        eSecondaryAttacks.clear();
     }
 
     const SDL_Rect* PlayerRect()
@@ -664,23 +631,15 @@ public:
             damageCooldown -= deltaTime;
         }
         if(primaryCooldownEarth > 0.0f) primaryCooldownEarth -= deltaTime;
-<<<<<<< Updated upstream
-
-        for(auto it = attacksEarth.begin(); it != attacksEarth.end();)
-=======
         if(secondaryCooldownEarth > 0.0f) secondaryCooldownEarth -= deltaTime;
         if(maskSwitchCooldown > 0.0f) maskSwitchCooldown -= deltaTime;
 
         for(auto it = ePrimaryAttacks.begin(); it != ePrimaryAttacks.end();)
->>>>>>> Stashed changes
         {
             (*it)->Update(deltaTime);
             if(!(*it)->IsAlive())
             {
                 delete *it;
-<<<<<<< Updated upstream
-                it = attacksEarth.erase(it);
-=======
                 it = ePrimaryAttacks.erase(it);
             }
             else ++it;
@@ -692,7 +651,6 @@ public:
             {
                 delete *it;
                 it = eSecondaryAttacks.erase(it);
->>>>>>> Stashed changes
             }
             else ++it;
         }
@@ -721,9 +679,6 @@ public:
     void Render()
     {
         if(aimTargetReady) SDL_RenderCopy(renderer, aim_target, NULL, &aimTargetRect);
-<<<<<<< Updated upstream
-        for(auto* a : attacksEarth) a->Render();
-=======
         for(auto* a : ePrimaryAttacks) a->Render();
         for(auto* a : eSecondaryAttacks) a->Render();
         
@@ -735,7 +690,7 @@ public:
         {
             SDL_SetTextureColorMod(texture, 255, 255, 255);
         }
->>>>>>> Stashed changes
+
         SDL_RenderCopy(renderer, texture, NULL, &destRect);
     }
 };
