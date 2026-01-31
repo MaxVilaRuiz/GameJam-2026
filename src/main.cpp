@@ -9,38 +9,7 @@
 #include "./globals/global.hpp"
 #include "./attacks/earth_attack.hpp"
 #include "./entities/player.hpp"
-
-class Tilemap
-{
-private:
-    SDL_Texture* tilemap_tex;
-    SDL_Rect srcRect = {0, 0, 16, 16}; // Choose tile
-    SDL_Rect destRect = {0, 0, displayBounds.w / 24 + 1, displayBounds.h / 16 + 1};
-
-public:
-    Tilemap()
-    {
-        SDL_Surface* temp = IMG_Load("../assets/Overworld.png");
-        tilemap_tex = SDL_CreateTextureFromSurface(renderer, temp);
-        SDL_FreeSurface(temp);
-    }
-
-    void Render()
-    {
-        for(int i = 0; i < 16; i++) {
-            for(int j = 0; j < 24; j++)
-            {
-                SDL_RenderCopy(renderer, tilemap_tex, &srcRect, &destRect);
-                destRect.x += displayBounds.w / 24 + 1;
-            }
-            destRect.x = 0;
-            destRect.y += displayBounds.h / 16 + 1;
-        }
-
-        destRect.x = 0;
-        destRect.y = 0;
-    }
-};
+#include "./utils/tile_map.hpp"
 
 
 class UI
