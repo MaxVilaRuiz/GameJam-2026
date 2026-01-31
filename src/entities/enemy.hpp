@@ -24,6 +24,8 @@ private:
 
     const float speed = 100.0f;
 
+    std::vector<SDL_Texture*> sprites;
+
     int health;
 
     std::vector<std::pair<int, int>> Directions(std::pair<int, int> cpos);

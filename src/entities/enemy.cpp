@@ -7,14 +7,20 @@ Enemy::Enemy() :
     inPlayerRange(false),
     damageTime(0.0f)
 {
-    SDL_Surface* temp = IMG_Load("../assets/zombie_mask_down.png");
-    texture = SDL_CreateTextureFromSurface(renderer, temp);
-    SDL_FreeSurface(temp);
-
     destRect = {100, 100, 128, 128};
     posX = (float)destRect.x;
     posY = (float)destRect.y;
     health = 4;
+
+    sprites = std::vector<SDL_Texture*>(8);
+    std::vector<std::string> names = {"zombie_mask_right", "zombie_mask_dright", "zombie_mask_down", "zombie_mask_dleft",
+        "zombie_mask_down", "zombie_mask_down", "zombie_mask_down", "zombie_mask_down"};
+    for(int i = 0; i < 8; i++)
+    {
+        SDL_Surface* temp = IMG_Load("../assets/zombie_mask_down.png");
+        texture = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
+    }
 }
 
 
@@ -64,10 +70,11 @@ std::pair<float, float> Enemy::BacktrackPath(std::vector<std::vector<std::pair<i
     return {dx / mag, dy / mag};
 }
 
-std::pair<float, float> Enemy::BFS() {
+std::pair<float, float> Enemy::BFS() 
+{
     int tileW = displayBounds.w / 24;
     int tileH = displayBounds.h / 16;
-
+    
     if (tileW == 0 || tileH == 0) return {0.0f, 0.0f};
 
     int startX = (destRect.x + destRect.w / 2) / tileW;
@@ -79,9 +86,8 @@ std::pair<float, float> Enemy::BFS() {
 
     std::vector<std::vector<bool>> visited(16, std::vector<bool>(24, false));
 
-
     visited[startY][startX] = true; 
-
+    
     std::vector<std::vector<std::pair<int, int>>> parent(16, std::vector<std::pair<int, int>>(24, {startX, startY}));
 
     std::queue<std::pair<int, int>> q;
@@ -89,7 +95,7 @@ std::pair<float, float> Enemy::BFS() {
 
     std::pair<int, int> goal = {-1, -1};
     bool found = false;
-
+    
     while(!q.empty())
     {
         std::pair<int, int> c = q.front();
@@ -104,7 +110,7 @@ std::pair<float, float> Enemy::BFS() {
 
         for(std::pair<int, int>& d : Directions(c))
         {
-            if(ValidPosition(d) && !visited[d.second][d.first])
+            if(ValidPosition(d) && !visited[d.second][d.first] && map[d.second][d.first] != 2)
             {
                 visited[d.second][d.first] = true;
                 parent[d.second][d.first] = c;
@@ -149,6 +155,10 @@ void Enemy::Update(double deltaTime)
 
         destRect.x = (int)posX;
         destRect.y = (int)posY;
+
+        float angle = atan2f(dir.second, dir.first);
+        if(angle < 0.0) angle += 2.0 * M_PI;
+        int dirIndex = (int)((angle + M_PI / 8) / (M_PI / 4)) % 8;
     }
 
     int dx = destRect.x - playerPos.first;
