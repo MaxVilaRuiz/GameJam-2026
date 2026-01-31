@@ -1,11 +1,9 @@
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_mixer.h>
 #include <iostream>
 #include <vector>
 #include <queue>
-
-const int WINDOW_HEIGHT = 1080;
-const int WINDOW_WIDTH = 1920;
 
 SDL_Window* window;
 SDL_Renderer* renderer;
@@ -15,6 +13,9 @@ SDL_Rect displayBounds;
 bool running = true;
 
 SDL_GameController* controller = nullptr;
+
+Mix_Music* mainTheme;
+Mix_Music* shopTheme;
 
 std::vector<std::vector<int>> map;
 std::pair<int, int> playerPos;
@@ -607,6 +608,28 @@ int main()
         return 1;
     }
 
+    if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
+    {
+        std::cerr << "Mix_OpenAudio failed" << std::endl;
+        return 1;
+    }
+
+    int flags = MIX_INIT_MP3;
+    int initted = Mix_Init(flags);
+    if ((initted & flags) != flags) {
+        printf("No se pudo inicializar soporte MP3: %s\n", Mix_GetError());
+        return 1;
+    }
+
+    mainTheme = Mix_LoadMUS("../assets/palo.mp3");
+    shopTheme = Mix_LoadMUS("../assets/shop_music.mp3");
+
+    if(!mainTheme || !shopTheme)
+    {
+        std::cerr << "Mix_LoadMUS failed" << std::endl;
+        return 1;
+    }
+
     SDL_GetRendererOutputSize(renderer, &displayBounds.w, &displayBounds.h);
 
     Uint64 frameStart, frameEnd;
@@ -649,6 +672,22 @@ int main()
         {
             if(e.type == SDL_QUIT)
                 running = false;
+
+
+            else if(e.type == SDL_KEYDOWN)
+            {
+                switch(e.key.keysym.sym)
+                {
+                    case SDLK_1:
+                        Mix_HaltMusic();
+                        Mix_PlayMusic(mainTheme, -1);
+                        break;
+                    case SDLK_2:
+                        Mix_HaltMusic();
+                        Mix_PlayMusic(shopTheme, -1);
+                        break;
+                }
+            }
         }
 
         player->Update(deltaTime);
@@ -695,6 +734,9 @@ int main()
     free(tilemap);
     free(enemy);
     free(canvas);
+    Mix_FreeMusic(mainTheme);
+    Mix_CloseAudio();
+    Mix_Quit();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
