@@ -8,7 +8,7 @@
 #include <queue>
 #include <string>
 
-#include "../attacks/earth_attack1.hpp"
+#include "../attacks/earth/earth_attack1.hpp"
 
 class Player
 {
