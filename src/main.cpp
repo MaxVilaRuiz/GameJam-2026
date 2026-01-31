@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <queue>
-#include <string>
+#include <stdio.h>
 
 SDL_Window* window;
 SDL_Renderer* renderer;
@@ -109,7 +109,11 @@ public:
     }
 
     std::vector<std::vector<bool>> visited(16, std::vector<bool>(24, false));
+
     
+
+
+
 
     visited[startY][startX] = true; 
     
@@ -242,6 +246,55 @@ public:
     }
 };
 
+
+
+class FireAttack1
+{
+private:
+    SDL_Texture* texture;
+    SDL_Rect rect;
+
+    //pair<int, int> dirf;
+
+public:
+
+    FireAttack1(SDL_Rect spawnRect, SDL_Rect DirectionRect)
+    {
+        SDL_Surface* temp = IMG_Load("../assets/p_fire_f1.png");
+        texture = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
+        rect = spawnRect;
+        
+        
+        for (int i = 0; i < enemies.size(); ++i) {
+            if (enemies[i]->InPlayerRange()) {
+                if (SDL_HasIntersection(enemies[i]->EnemyRect(), &rect)) {
+                    enemies[i]->TakeDamage(1);
+                }
+            }
+        }
+    }
+
+    ~FireAttack1()
+    {
+        if(texture) SDL_DestroyTexture(texture);
+    }
+
+    bool IsAlive() const { return rect.x < -10 | rect.y < -10 | rect.x > 2250 | rect.y > 1250; } 
+
+    void Update()
+    {
+
+        
+    }
+
+    void Render()
+    {
+        SDL_RenderCopy(renderer, texture, NULL, &rect);
+    }
+};
+
+
 class Player
 {
 private:
@@ -266,11 +319,10 @@ private:
 
     std::vector<int> maskLvl = {0, 0, 0, 0};
     int primaryMask = 0;
-    int secondaryMask = 1;
-    std::vector<SDL_Texture*> masks_textures;
-    std::vector<SDL_Rect> masks_bounds;
+    int secondaryMask = -1;
 
-    std::vector<EarthAttack1*> attacks;
+    std::vector<EarthAttack1*> attacksEarth;
+    std::vector<FireAttack1*> attacksFire;
     float primaryCooldownEarth = 0.0f;
     float PRIMARY_COOLDOWN_TIME_EARTH = 0.4f;
     float primaryCooldownFire = 0.0f;
@@ -280,27 +332,20 @@ private:
     float primaryCooldownWater = 0.0f;
     float PRIMARY_COOLDOWN_TIME_WATER = 0.4f;
 
-    float maskSwitchCooldown = 0.0f;
-    float MASK_SWITCH_COOLDOWN_TIME = 1.0f;
-
-    const int offsetX = 40;
-    const int offsetY = 0;
-
     std::vector<SDL_Texture*> maskSprites()
     {
         std::vector<SDL_Texture*> sprites(4);
-        masks_bounds = std::vector<SDL_Rect>(4);
-        std::vector<std::string> names = {"terra 1.png", "foc 1.png", "aire 1.png", "awa 1.png"};
+        std::vector<char*> names = {"aire 1.png", "awa 1.png", "foc 1.png", "terra 1.png"};
 
         for(int i = 0; i < 4; i++)
         {
-            SDL_Surface* temp = IMG_Load(("../assets/masks/" + names[i]).c_str());
+            char* name = names[i];
+            char namebuffer[128];
+            sprintf(namebuffer, "../assets/%s", name);
+            SDL_Surface* temp = IMG_Load(namebuffer);
             sprites[i] = SDL_CreateTextureFromSurface(renderer, temp);
             SDL_FreeSurface(temp);
-            masks_bounds[i] = {destRect.x, destRect.y, 48, 48};
         }
-
-        return sprites;
     }
 
     void Movement(double deltaTime)
@@ -436,8 +481,17 @@ private:
             int esize = 64;
             if(maskLvl[0] >=3) esize += 25;
             
-            attacks.push_back(new EarthAttack1({aimTargetRect.x - (esize - 64)/2, aimTargetRect.y - (esize - 64)/2 , esize, esize}));
+            attacksEarth.push_back(new EarthAttack1({aimTargetRect.x - (esize - 64)/2, aimTargetRect.y - (esize - 64)/2 , esize, esize}));
             primaryCooldownEarth = PRIMARY_COOLDOWN_TIME_EARTH;
+        }
+        else if (primaryMask == 1 && primaryCooldownFire <= 0.0f && aimTargetReady){
+
+            int fsize = 16;
+            if(maskLvl[0] >=3) fsize += 10;
+            
+            attacksFire.push_back(new FireAttack1({destRect.x, destRect.y , fsize, fsize}, aimTargetRect));
+            primaryCooldownFire = PRIMARY_COOLDOWN_TIME_FIRE;
+
         }
     }
 
@@ -449,7 +503,7 @@ private:
 public:
     Player()
     {
-        SDL_Surface* temp = IMG_Load("../assets/monk de frente.png");
+        SDL_Surface* temp = IMG_Load("../assets/character.png");
         texture = SDL_CreateTextureFromSurface(renderer, temp);
         SDL_FreeSurface(temp);
 
@@ -458,21 +512,19 @@ public:
         SDL_FreeSurface(temp);
 
         aimTargetRect = {0, 0, 64, 64};
-        destRect = {0, 0, 128, 128};
+        destRect = {0, 0, 64, 64};
         posX = (float)destRect.x;
         posY = (float)destRect.y;
 
         currentHealth = maxHealth;
-
-        masks_textures = maskSprites();
     }
 
     ~Player()
     {
         if(texture) SDL_DestroyTexture(texture);
         if(aim_target) SDL_DestroyTexture(aim_target);
-        for(auto* a : attacks) delete a;
-        attacks.clear();
+        for(auto* a : attacksEarth) delete a;
+        attacksEarth.clear();
     }
 
     const SDL_Rect* PlayerRect()
@@ -511,31 +563,16 @@ public:
             damageCooldown -= deltaTime;
         }
         if(primaryCooldownEarth > 0.0f) primaryCooldownEarth -= deltaTime;
-        if(maskSwitchCooldown > 0.0f) maskSwitchCooldown -= deltaTime;
 
-        for(auto it = attacks.begin(); it != attacks.end();)
+        for(auto it = attacksEarth.begin(); it != attacksEarth.end();)
         {
             (*it)->Update(deltaTime);
             if(!(*it)->IsAlive())
             {
                 delete *it;
-                it = attacks.erase(it);
+                it = attacksEarth.erase(it);
             }
             else ++it;
-        }
-
-        const Uint8* state = SDL_GetKeyboardState(NULL);
-        bool maskSwitchButton = (state[SDL_SCANCODE_E] 
-        || (controller && SDL_GameControllerGetButton(controller, SDL_GameControllerButton(SDL_CONTROLLER_BUTTON_X))));
-        if(maskSwitchButton && maskSwitchCooldown <= 0.0f)
-        {
-            if(secondaryMask != -1)
-            {
-                int temp = primaryMask;
-                primaryMask = secondaryMask;
-                secondaryMask = temp;
-                maskSwitchCooldown = MASK_SWITCH_COOLDOWN_TIME;
-            }
         }
 
         Movement(deltaTime);
@@ -556,18 +593,13 @@ public:
         if (gridX >= 0 && gridX < 24 && gridY >= 0 && gridY < 16) {
             map[gridY][gridX] = 1;
         }
-
-        masks_bounds[primaryMask].x = destRect.x + offsetX;
-        masks_bounds[primaryMask].y = destRect.y + offsetY;
     }
 
     void Render()
     {
         if(aimTargetReady) SDL_RenderCopy(renderer, aim_target, NULL, &aimTargetRect);
-        for(auto* a : attacks) a->Render();
+        for(auto* a : attacksEarth) a->Render();
         SDL_RenderCopy(renderer, texture, NULL, &destRect);
-
-        SDL_RenderCopy(renderer, masks_textures[primaryMask], NULL, &masks_bounds[primaryMask]);
     }
 };
 
