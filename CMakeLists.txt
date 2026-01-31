@@ -25,7 +25,7 @@ add_executable(${APP})
 target_sources(${APP} PRIVATE 
     src/main.cpp
     src/globals/global.cpp
-    # src/entities/enemy.cpp
+    src/entities/enemy.cpp
     # src/attacks/earth_attack.cpp
     # src/entities/player.cpp
     # src/utils/tile_map.cpp

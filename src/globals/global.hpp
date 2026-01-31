@@ -7,7 +7,7 @@
 #include <queue>
 #include <string>
 
-// class Enemy;
+class Enemy;
 
 extern SDL_Window* window;
 extern SDL_Renderer* renderer;
@@ -26,4 +26,4 @@ extern std::pair<int, int> playerPos;
 
 extern std::pair<int, int> TILE_SIZE;
 
-// extern std::vector<Enemy*> enemies;
+extern std::vector<Enemy*> enemies;

@@ -13,8 +13,6 @@
 // #include "./utils/tile_map.hpp"
 // #include "./utils/ui.hpp"
 
-std::vector<Enemy*> enemies;
-
 class FireAttack1
 {
 private:
