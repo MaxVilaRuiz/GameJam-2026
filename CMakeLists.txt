@@ -24,6 +24,7 @@ add_executable(${APP})
 #if macosx bundle: add_executable(${APP} MACOSX_BUNDLE)
 target_sources(${APP} PRIVATE 
     src/main.cpp
+    src/global.cpp
 )
 
 target_link_libraries(${APP} PRIVATE SDL2::SDL2main SDL2::SDL2 SDL2_image::SDL2_image SDL2_mixer::SDL2_mixer)
