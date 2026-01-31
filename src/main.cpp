@@ -9,6 +9,8 @@ const int WINDOW_WIDTH = 1920;
 SDL_Window* window;
 SDL_Renderer* renderer;
 
+SDL_Rect displayBounds;
+
 bool running = true;
 
 SDL_GameController* controller = nullptr;
@@ -157,6 +159,16 @@ private:
         }
     }
 
+    void PrimaryAttack()
+    {
+
+    }
+
+    void SecondaryAttack()
+    {
+
+    }
+
 public:
     Player()
     {
@@ -178,6 +190,16 @@ public:
     {
         Movement(deltaTime);
         Aim();
+
+        if(SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT))
+        {
+            PrimaryAttack();
+        }
+
+        if(SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT))
+        {
+            SecondaryAttack();
+        }
     }
 
     void Render()
@@ -192,7 +214,7 @@ class Tilemap
 private:
     SDL_Texture* tilemap_tex;
     SDL_Rect srcRect = {0, 0, 16, 16}; // Choose tile
-    SDL_Rect destRect = {0, 0, 64, 64};
+    SDL_Rect destRect = {0, 0, displayBounds.w / 24 + 1, displayBounds.h / 16 + 1};
 
 public:
     Tilemap()
@@ -200,22 +222,56 @@ public:
         SDL_Surface* temp = IMG_Load("../assets/Overworld.png");
         tilemap_tex = SDL_CreateTextureFromSurface(renderer, temp);
         SDL_FreeSurface(temp);
+
+        std::cout << displayBounds.w << ", " << displayBounds.h << std::endl;
     }
 
     void Render()
     {
-        for(int i = 0; i < 15; i++) {
-            for(int j = 0; j < 23; j++)
+        for(int i = 0; i < 16; i++) {
+            for(int j = 0; j < 24; j++)
             {
                 SDL_RenderCopy(renderer, tilemap_tex, &srcRect, &destRect);
-                destRect.x += 64;
+                destRect.x += displayBounds.w / 24 + 1;
             }
             destRect.x = 0;
-            destRect.y += 64;
+            destRect.y += displayBounds.h / 16 + 1;
         }
 
         destRect.x = 0;
         destRect.y = 0;
+    }
+};
+
+class Enemy
+{
+private:
+    SDL_Texture* texture;
+    SDL_Rect destRect;
+
+public:
+    Enemy()
+    {
+        SDL_Surface* temp = IMG_Load("../assets/zombie_mask_down.png");
+        texture = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
+
+        destRect = {100, 100, 128, 128};
+    }
+
+    void BFS()
+    {
+
+    }
+
+    void Update(double deltaTime)
+    {
+
+    }
+
+    void Render()
+    {
+        SDL_RenderCopy(renderer, texture, NULL, &destRect);
     }
 };
 
@@ -227,7 +283,6 @@ int main()
         return 1;
     }
 
-    SDL_Rect displayBounds;
     SDL_GetDisplayUsableBounds(0, &displayBounds);
     window = SDL_CreateWindow("MASK", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, displayBounds.w, displayBounds.h, SDL_WINDOW_FULLSCREEN_DESKTOP);
 
@@ -245,6 +300,8 @@ int main()
         return 1;
     }
 
+    SDL_GetRendererOutputSize(renderer, &displayBounds.w, &displayBounds.h);
+
     Uint64 frameStart, frameEnd;
     double deltaTime;
     frameStart = 0;
@@ -253,6 +310,8 @@ int main()
 
     Player* player = new Player();
     Tilemap* tilemap = new Tilemap();
+
+    Enemy* enemy = new Enemy();
 
     for(int i = 0; i < SDL_NumJoysticks(); i++)
     {
@@ -288,12 +347,14 @@ int main()
 
         tilemap->Render();
         player->Render();
+        enemy->Render();
 
         SDL_RenderPresent(renderer);
     }
 
     free(player);
     free(tilemap);
+    free(enemy);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
