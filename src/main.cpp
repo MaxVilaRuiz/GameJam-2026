@@ -2,6 +2,7 @@
 #include <SDL_image.h>
 #include <iostream>
 #include <vector>
+#include <queue>
 
 const int WINDOW_HEIGHT = 1080;
 const int WINDOW_WIDTH = 1920;
@@ -14,6 +15,205 @@ SDL_Rect displayBounds;
 bool running = true;
 
 SDL_GameController* controller = nullptr;
+
+std::vector<std::vector<int>> map;
+std::pair<int, int> playerPos;
+
+class Enemy
+{
+private:
+    SDL_Texture* texture;
+    SDL_Rect destRect;
+
+    float posX, posY;
+
+    bool damagePlayer = false;
+    bool inPlayerRange = false;
+
+    const float speed = 100.0f;
+
+    int health;
+
+    std::vector<std::pair<int, int>> Directions(std::pair<int, int> cpos)
+    {
+        return {{cpos.first + 1, cpos.second}, {cpos.first + 1, cpos.second + 1}, {cpos.first, cpos.second + 1}, {cpos.first - 1, cpos.second + 1},
+                {cpos.first - 1, cpos.second}, {cpos.first - 1, cpos.second - 1}, {cpos.first, cpos.second - 1}, {cpos.first + 1, cpos.second - 1}};
+    }
+
+    bool ValidPosition(std::pair<int, int> p)
+    {
+        return (p.first >= 0 && p.first < 24 && p.second >= 0 && p.second < 16);
+    }
+
+public:
+    Enemy()
+    {
+        SDL_Surface* temp = IMG_Load("../assets/zombie_mask_down.png");
+        texture = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
+
+        destRect = {100, 100, 128, 128};
+        posX = (float)destRect.x;
+        posY = (float)destRect.y;
+        health = 4;
+    }
+
+    const SDL_Rect* EnemyRect()
+    {
+        return &destRect;
+    }
+
+    bool IsNearPlayer()
+    {
+        return damagePlayer;
+    }
+
+    std::pair<float, float> BacktrackPath(std::vector<std::vector<std::pair<int, int>>>& parent, std::pair<int, int> start, std::pair<int, int> goal)
+    {
+        std::pair<int, int> curr = goal;
+        if(curr == start)
+        {
+            damagePlayer = true;
+            return {0.0f, 0.0f};
+        }
+        else damagePlayer = false;
+
+        while(!(parent[curr.second][curr.first] == start))
+        {
+            curr = parent[curr.second][curr.first];
+        }
+
+        float dx = curr.first - start.first;
+        float dy = curr.second - start.second;
+        float mag = sqrtf(dx * dx + dy * dy);
+        if(mag <= 0.0f) return {0.0f, 0.0f};
+        return {dx / mag, dy / mag};
+    }
+
+    std::pair<float, float> BFS()
+    {
+        int startX = (destRect.x + destRect.w / 2) / (displayBounds.w / 24);
+        int startY = (destRect.y + destRect.h / 2) / (displayBounds.h / 16);
+
+        std::vector<std::vector<bool>> visited(16, std::vector<bool>(24, false));
+        visited[startY][startX] = true;
+        std::vector<std::vector<std::pair<int, int>>> parent(16, std::vector<std::pair<int, int>>(24, {startX, startY}));
+
+        std::queue<std::pair<int, int>> q;
+        q.push({startX, startY});
+
+        std::pair<int, int> goal = {-1, -1};
+        bool found = false;
+        while(!q.empty())
+        {
+            std::pair<int, int> c = q.front();
+            q.pop();
+
+            if(map[c.second][c.first])
+            {
+                found = true;
+                goal = c;
+                break;
+            }
+
+            for(std::pair<int, int>& d : Directions(c))
+            {
+                if(ValidPosition(d) && !visited[d.second][d.first])
+                {
+                    visited[d.second][d.first] = true;
+                    parent[d.second][d.first] = c;
+                    q.push(d);
+                }
+            }
+        }
+
+        if(found) return BacktrackPath(parent, {startX, startY}, goal);
+        else
+        {
+            damagePlayer = true;
+            return {0.0, 0.0};
+        }
+    }
+
+    void TakeDamage(int amount)
+    {
+        health -= amount;
+        std::cout << health << std::endl;
+    }
+
+    bool IsAlive() const { return health > 0; }
+    bool InPlayerRange() const { return inPlayerRange; }
+
+    void Update(double deltaTime)
+    {
+        std::pair<float, float> dir = BFS();
+
+        posX += dir.first * speed * deltaTime;
+        posY += dir.second * speed * deltaTime;
+
+        destRect.x = (int)posX;
+        destRect.y = (int)posY;
+
+        int dx = destRect.x - playerPos.first;
+        int dy = destRect.y - playerPos.second;
+        float mag = sqrtf(dx * dx + dy * dy);
+        if(mag <= 280) inPlayerRange = true;
+        else inPlayerRange = false;
+    }
+
+    void Render()
+    {
+        SDL_RenderCopy(renderer, texture, NULL, &destRect);
+    }
+};
+
+
+std::vector<Enemy*> enemies;
+
+class EarthAttack1
+{
+private:
+    SDL_Texture* texture;
+    SDL_Rect rect;
+
+    float BASE_DURATION = 1.0f;
+    float currentTime;
+
+public:
+    EarthAttack1(SDL_Rect spawnRect)
+    {
+        SDL_Surface* temp = IMG_Load("../assets/crack.png");
+        texture = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
+        rect = spawnRect;
+        currentTime = BASE_DURATION;
+        
+        for (int i = 0; i < enemies.size(); ++i) {
+            if (enemies[i]->InPlayerRange()) {
+                if (SDL_HasIntersection(enemies[i]->EnemyRect(), &rect)) {
+                    enemies[i]->TakeDamage(1);
+                }
+            }
+        }
+    }
+
+    ~EarthAttack1()
+    {
+        if(texture) SDL_DestroyTexture(texture);
+    }
+
+    bool IsAlive() const { return currentTime > 0.0f; } 
+
+    void Update(double deltaTime)
+    {
+        currentTime -= deltaTime;
+    }
+
+    void Render()
+    {
+        SDL_RenderCopy(renderer, texture, NULL, &rect);
+    }
+};
 
 class Player
 {
@@ -32,9 +232,18 @@ private:
     float aimPosX, aimPosY;
     const int aimRange = 250;
 
+    int maxHealth = 10;
+    int currentHealth;
+    float damageCooldown = 0.0f;
+    const float INVINCIBILITY_TIME = 1.0f;
+
     std::vector<int> maskLvl = {0, 0, 0, 0};
     int primaryMask = -1;
     int secondaryMask = -1;
+
+    std::vector<EarthAttack1*> attacks;
+    float primaryCooldown = 0.0f;
+    float PRIMARY_COOLDOWN_TIME = 0.4f;
 
     void Movement(double deltaTime)
     {
@@ -93,6 +302,9 @@ private:
                 destRect.y = (int)posY;
             }
         }
+
+        playerPos.first = destRect.x + destRect.w / 2;
+        playerPos.second = destRect.y + destRect.h / 2;
     }
 
     void Aim()
@@ -161,7 +373,11 @@ private:
 
     void PrimaryAttack()
     {
-
+        if(primaryCooldown <= 0.0f)
+        {
+            attacks.push_back(new EarthAttack1(aimTargetRect));
+            primaryCooldown = PRIMARY_COOLDOWN_TIME;
+        }
     }
 
     void SecondaryAttack()
@@ -184,14 +400,61 @@ public:
         destRect = {0, 0, 64, 64};
         posX = (float)destRect.x;
         posY = (float)destRect.y;
+
+        currentHealth = maxHealth;
+    }
+
+    ~Player()
+    {
+        if(texture) SDL_DestroyTexture(texture);
+        if(aim_target) SDL_DestroyTexture(aim_target);
+        for(auto* a : attacks) delete a;
+        attacks.clear();
+    }
+
+    const SDL_Rect* PlayerRect()
+    {
+        return &destRect;
+    }
+
+    void TakeDamage(int amount)
+    {
+        if(damageCooldown > 0.0f) return;
+        currentHealth -= amount;
+        damageCooldown = INVINCIBILITY_TIME;
+    }
+
+    int GetCurrentHealth()
+    {
+        return currentHealth;
     }
 
     void Update(double deltaTime)
     {
+        map[(destRect.y + destRect.h / 2) / (displayBounds.h / 16)][(destRect.x + destRect.w / 2) / (displayBounds.w / 24)] = 0;
+        if(damageCooldown > 0.0f)
+        {
+            damageCooldown -= deltaTime;
+        }
+
+        if(primaryCooldown > 0.0f) primaryCooldown -= deltaTime;
+
+        for(auto it = attacks.begin(); it != attacks.end();)
+        {
+            (*it)->Update(deltaTime);
+            if(!(*it)->IsAlive())
+            {
+                delete *it;
+                it = attacks.erase(it);
+            }
+            else ++it;
+        }
+
         Movement(deltaTime);
         Aim();
 
-        if(SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT))
+        if((SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)) || 
+        (controller && SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 1000))
         {
             PrimaryAttack();
         }
@@ -200,11 +463,14 @@ public:
         {
             SecondaryAttack();
         }
+
+        map[(destRect.y + destRect.h / 2) / (displayBounds.h / 16)][(destRect.x + destRect.w / 2) / (displayBounds.w / 24)] = 1;
     }
 
     void Render()
     {
         if(aimTargetReady) SDL_RenderCopy(renderer, aim_target, NULL, &aimTargetRect);
+        for(auto* a : attacks) a->Render();
         SDL_RenderCopy(renderer, texture, NULL, &destRect);
     }
 };
@@ -222,8 +488,6 @@ public:
         SDL_Surface* temp = IMG_Load("../assets/Overworld.png");
         tilemap_tex = SDL_CreateTextureFromSurface(renderer, temp);
         SDL_FreeSurface(temp);
-
-        std::cout << displayBounds.w << ", " << displayBounds.h << std::endl;
     }
 
     void Render()
@@ -243,35 +507,78 @@ public:
     }
 };
 
-class Enemy
+
+class UI
 {
 private:
-    SDL_Texture* texture;
-    SDL_Rect destRect;
+    SDL_Texture* heart_full_tex;
+    SDL_Texture* heart_half_tex;
+    SDL_Texture* heart_empty_tex;
+
+    SDL_Rect heartsRect;
+    SDL_Rect heartsStartPos;
+
+    std::vector<int> hearts; // 0 full, 1 half, 2 empty
 
 public:
-    Enemy()
+
+    UI()
     {
-        SDL_Surface* temp = IMG_Load("../assets/zombie_mask_down.png");
-        texture = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_Surface* temp = IMG_Load("../assets/heart_full.png");
+        heart_full_tex = SDL_CreateTextureFromSurface(renderer, temp);
         SDL_FreeSurface(temp);
 
-        destRect = {100, 100, 128, 128};
+        temp = IMG_Load("../assets/heart_half.png");
+        heart_half_tex = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
+
+        temp = IMG_Load("../assets/heart_empty.png");
+        heart_empty_tex = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
+
+        heartsStartPos = {10, 10, 32, 32};
+        heartsRect = heartsStartPos;
+        hearts = std::vector<int>(5, 0);
+
+        SetHearts(10);
     }
 
-    void BFS()
+    void SetHearts(int amount)
     {
-
-    }
-
-    void Update(double deltaTime)
-    {
-
+        int hamount = amount / 2;
+        for(int i = 1; i <= hearts.size(); i++)
+        {
+            if(i <= hamount) hearts[i-1] = 0;
+            else if(amount%2 != 0 and i == hamount+1) hearts[i-1] = 1;
+            else hearts[i-1] = 2;
+        }
     }
 
     void Render()
     {
-        SDL_RenderCopy(renderer, texture, NULL, &destRect);
+        for(int i = 0; i < hearts.size(); i++)
+        {
+            SDL_Texture* heart;
+
+            switch(hearts[i])
+            {
+                case 0:
+                    heart = heart_full_tex;
+                    break;
+                case 1:
+                    heart = heart_half_tex;
+                    break;
+                case 2:
+                    heart = heart_empty_tex;
+                    break;
+            }
+
+            SDL_RenderCopy(renderer, heart, NULL, &heartsRect);
+
+            heartsRect.x += 36;
+        }
+        
+        heartsRect.x = heartsStartPos.x;
     }
 };
 
@@ -308,10 +615,14 @@ int main()
     frameEnd = SDL_GetPerformanceCounter();
     deltaTime = 0.0;
 
+    map = std::vector<std::vector<int>>(16, std::vector<int>(24, 0));
+
     Player* player = new Player();
     Tilemap* tilemap = new Tilemap();
-
     Enemy* enemy = new Enemy();
+    enemies.push_back(enemy);
+    
+    UI* canvas = new UI();
 
     for(int i = 0; i < SDL_NumJoysticks(); i++)
     {
@@ -341,13 +652,41 @@ int main()
         }
 
         player->Update(deltaTime);
+        if (enemy) enemy->Update(deltaTime);
+
+        for(auto it = enemies.begin(); it != enemies.end(); )
+        {
+            (*it)->Update(deltaTime);
+            if(!(*it)->IsAlive())
+            {
+                delete *it;
+                it = enemies.erase(it);
+            }
+            else ++it;
+        }
+
+        if(enemy && enemy->IsNearPlayer())
+        {   
+            if(SDL_HasIntersection(enemy->EnemyRect(), player->PlayerRect()) && player->GetCurrentHealth() > 0)
+            {
+                player->TakeDamage(1);
+                canvas->SetHearts(player->GetCurrentHealth());
+            }
+
+            /*if(player->GetCurrentHealth() <= 0)
+            {
+                running = false;
+            }*/
+        }
 
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
 
         tilemap->Render();
         player->Render();
-        enemy->Render();
+        if (enemy) enemy->Render();
+        canvas->Render();
+
 
         SDL_RenderPresent(renderer);
     }
@@ -355,6 +694,7 @@ int main()
     free(player);
     free(tilemap);
     free(enemy);
+    free(canvas);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
