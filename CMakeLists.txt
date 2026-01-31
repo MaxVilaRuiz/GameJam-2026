@@ -25,6 +25,7 @@ add_executable(${APP})
 target_sources(${APP} PRIVATE 
     src/main.cpp
     src/global.cpp
+    src/enemy.cpp
 )
 
 target_link_libraries(${APP} PRIVATE SDL2::SDL2main SDL2::SDL2 SDL2_image::SDL2_image SDL2_mixer::SDL2_mixer)
