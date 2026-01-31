@@ -8,7 +8,7 @@
 #include <queue>
 #include <string>
 #include "../globals/global.hpp"
-#include "./enemy.hpp"
+#include "../entities/enemy.hpp"
 
 class EarthAttack1
 {
