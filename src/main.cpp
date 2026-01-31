@@ -38,6 +38,8 @@ private:
 
     const float speed = 100.0f;
 
+    std::vector<SDL_Texture*> sprites;
+
     int health;
 
     std::vector<std::pair<int, int>> Directions(std::pair<int, int> cpos)
@@ -54,14 +56,20 @@ private:
 public:
     Enemy()
     {
-        SDL_Surface* temp = IMG_Load("../assets/zombie_mask_down.png");
-        texture = SDL_CreateTextureFromSurface(renderer, temp);
-        SDL_FreeSurface(temp);
-
         destRect = {100, 100, 128, 128};
         posX = (float)destRect.x;
         posY = (float)destRect.y;
         health = 4;
+
+        sprites = std::vector<SDL_Texture*>(8);
+        std::vector<std::string> names = {"zombie_mask_right", "zombie_mask_dright", "zombie_mask_down", "zombie_mask_dleft",
+            "zombie_mask_down", "zombie_mask_down", "zombie_mask_down", "zombie_mask_down"};
+        for(int i = 0; i < 8; i++)
+        {
+            SDL_Surface* temp = IMG_Load("../assets/zombie_mask_down.png");
+            texture = SDL_CreateTextureFromSurface(renderer, temp);
+            SDL_FreeSurface(temp);
+        }
     }
 
     const SDL_Rect* EnemyRect()
@@ -97,60 +105,60 @@ public:
     }
 
     std::pair<float, float> BFS() {
-    int tileW = displayBounds.w / 24;
-    int tileH = displayBounds.h / 16;
-    
-    if (tileW == 0 || tileH == 0) return {0.0f, 0.0f};
+        int tileW = displayBounds.w / 24;
+        int tileH = displayBounds.h / 16;
+        
+        if (tileW == 0 || tileH == 0) return {0.0f, 0.0f};
 
-    int startX = (destRect.x + destRect.w / 2) / tileW;
-    int startY = (destRect.y + destRect.h / 2) / tileH;
+        int startX = (destRect.x + destRect.w / 2) / tileW;
+        int startY = (destRect.y + destRect.h / 2) / tileH;
 
-    if (startX < 0 || startX >= 24 || startY < 0 || startY >= 16) {
-        return {0.0f, 0.0f}; // Se queda quieto si está fuera del mapa
-    }
-
-    std::vector<std::vector<bool>> visited(16, std::vector<bool>(24, false));
-
-    visited[startY][startX] = true; 
-    
-    std::vector<std::vector<std::pair<int, int>>> parent(16, std::vector<std::pair<int, int>>(24, {startX, startY}));
-
-    std::queue<std::pair<int, int>> q;
-    q.push({startX, startY});
-
-    std::pair<int, int> goal = {-1, -1};
-    bool found = false;
-    
-    while(!q.empty())
-    {
-        std::pair<int, int> c = q.front();
-        q.pop();
-
-        if(map[c.second][c.first])
-        {
-            found = true;
-            goal = c;
-            break;
+        if (startX < 0 || startX >= 24 || startY < 0 || startY >= 16) {
+            return {0.0f, 0.0f}; // Se queda quieto si está fuera del mapa
         }
 
-        for(std::pair<int, int>& d : Directions(c))
+        std::vector<std::vector<bool>> visited(16, std::vector<bool>(24, false));
+
+        visited[startY][startX] = true; 
+        
+        std::vector<std::vector<std::pair<int, int>>> parent(16, std::vector<std::pair<int, int>>(24, {startX, startY}));
+
+        std::queue<std::pair<int, int>> q;
+        q.push({startX, startY});
+
+        std::pair<int, int> goal = {-1, -1};
+        bool found = false;
+        
+        while(!q.empty())
         {
-            if(ValidPosition(d) && !visited[d.second][d.first] && map[d.second][d.first] != 2)
+            std::pair<int, int> c = q.front();
+            q.pop();
+
+            if(map[c.second][c.first])
             {
-                visited[d.second][d.first] = true;
-                parent[d.second][d.first] = c;
-                q.push(d);
+                found = true;
+                goal = c;
+                break;
+            }
+
+            for(std::pair<int, int>& d : Directions(c))
+            {
+                if(ValidPosition(d) && !visited[d.second][d.first] && map[d.second][d.first] != 2)
+                {
+                    visited[d.second][d.first] = true;
+                    parent[d.second][d.first] = c;
+                    q.push(d);
+                }
             }
         }
-    }
 
-    if(found) return BacktrackPath(parent, {startX, startY}, goal);
-    else
-    {
-        damagePlayer = true;
-        return {0.0, 0.0};
+        if(found) return BacktrackPath(parent, {startX, startY}, goal);
+        else
+        {
+            damagePlayer = true;
+            return {0.0, 0.0};
+        }
     }
-}
 
     void TakeDamage(int amount)
     {
@@ -176,6 +184,10 @@ public:
 
             destRect.x = (int)posX;
             destRect.y = (int)posY;
+
+            float angle = atan2f(dir.second, dir.first);
+            if(angle < 0.0) angle += 2.0 * M_PI;
+            int dirIndex = (int)((angle + M_PI / 8) / (M_PI / 4)) % 8;
         }
 
         int dx = destRect.x - playerPos.first;
@@ -201,6 +213,9 @@ class FireAttack1
 private:
     SDL_Texture* texture;
     SDL_Rect rect;
+    float speedf = 467;
+
+    std::pair<float, float> dirf;
 public:
     FireAttack1(SDL_Rect spawnRect, SDL_Rect DirectionRect)
     {
@@ -208,6 +223,9 @@ public:
         texture = SDL_CreateTextureFromSurface(renderer, temp);
         SDL_FreeSurface(temp);
         rect = spawnRect;
+        float mag = sqrtf((spawnRect.x-DirectionRect.x) * (spawnRect.x-DirectionRect.x) + (spawnRect.y-DirectionRect.y)*(spawnRect.y-DirectionRect.y));
+        dirf.first = (DirectionRect.x - spawnRect.x) / mag;
+        dirf.second = (DirectionRect.y - spawnRect.y) / mag;
     }
 
     ~FireAttack1()
@@ -215,11 +233,33 @@ public:
         if(texture) SDL_DestroyTexture(texture);
     }
 
-    bool IsAlive() const { return rect.x < -10 | rect.y < -10 | rect.x > 2250 | rect.y > 1250; } 
+    bool IsAlive() const { return rect.x > -10 & rect.y > -10 & rect.x < 2250 & rect.y < 1250; } 
 
-    void Update()
+    void Update(double deltaTime)
     {
+
+        float aux = deltaTime * speedf * dirf.first;
+        float auy = deltaTime * speedf * dirf.second;
+
+        rect.x += (int)aux;
+        rect.y += (int)auy;
+
+        for (int i = 0; i < enemies.size(); ++i) {
+            if (enemies[i]->InPlayerRange()) {
+                if (SDL_HasIntersection(enemies[i]->EnemyRect(), &rect)) {
+                    enemies[i]->TakeDamage(1);
+                    rect.x = -1000;
+                }
+            }
+        }
+    }
+
+    void Render()
+    {
+        float angle = atan2(dirf.second, dirf.first) * 180.0f / M_PI;
+        if (angle < 0) angle += 360.0f;
         
+        SDL_RenderCopyEx(renderer, texture, NULL, &rect, angle, NULL, SDL_FLIP_NONE);
     }
 };
 
@@ -365,7 +405,9 @@ private:
 
     std::vector<int> maskLvl = {0, 0, 0, 0};
     int primaryMask = 0;
-    int secondaryMask = -1;
+    int secondaryMask = 1;
+    std::vector<SDL_Texture*> masks_textures;
+    std::vector<SDL_Rect> masks_bounds;
 
     std::vector<FireAttack1*> attacksFire;
     std::vector<EarthAttack1*> ePrimaryAttacks;
@@ -391,17 +433,18 @@ private:
     std::vector<SDL_Texture*> maskSprites()
     {
         std::vector<SDL_Texture*> sprites(4);
-        std::vector<char*> names = {"aire 1.png", "awa 1.png", "foc 1.png", "terra 1.png"};
+        masks_bounds = std::vector<SDL_Rect>(4);
+        std::vector<std::string> names = {"terra 1.png", "foc 1.png", "aire 1.png", "awa 1.png"};
 
         for(int i = 0; i < 4; i++)
         {
-            char* name = names[i];
-            char namebuffer[128];
-            sprintf(namebuffer, "../assets/%s", name);
-            SDL_Surface* temp = IMG_Load(namebuffer);
+            SDL_Surface* temp = IMG_Load(("../assets/masks/" + names[i]).c_str());
             sprites[i] = SDL_CreateTextureFromSurface(renderer, temp);
             SDL_FreeSurface(temp);
+            masks_bounds[i] = {destRect.x, destRect.y, 48, 48};
         }
+
+        return sprites;
     }
 
     void Movement(double deltaTime)
@@ -491,11 +534,14 @@ private:
 
                 float scaled = scaledMag * aimRange;
 
-                aimPosX = destRect.x + dirx * scaled;
-                aimPosY = destRect.y + diry * scaled;
+                aimPosX = (destRect.x + destRect.w/2) + dirx * scaled;
+                aimPosY = (destRect.y + destRect.h/2) + diry * scaled;
 
                 aimTargetRect.x = (int)aimPosX;
                 aimTargetRect.y = (int)aimPosY;
+
+                aimTargetRect.x = (int)aimPosX - aimTargetRect.w / 2;
+                aimTargetRect.y = (int)aimPosY - aimTargetRect.h / 2;
             }
             else
             {
@@ -542,10 +588,10 @@ private:
         }
         else if (primaryMask == 1 && primaryCooldownFire <= 0.0f && aimTargetReady){
 
-            int fsize = 16;
-            if(maskLvl[0] >=3) fsize += 10;
+            int fsize = 40;
+            if(maskLvl[0] >=3) fsize += 20;
             
-            attacksFire.push_back(new FireAttack1({destRect.x, destRect.y , fsize, fsize}, aimTargetRect));
+            attacksFire.push_back(new FireAttack1({destRect.x + destRect.w/2, destRect.y+destRect.h/2, fsize, fsize}, aimTargetRect));
             primaryCooldownFire = PRIMARY_COOLDOWN_TIME_FIRE;
 
         }
@@ -556,7 +602,7 @@ private:
         if(primaryMask == 0 && secondaryCooldownEarth <= 0.0f && aimTargetReady)
         {
             int esize = 128;
-            eSecondaryAttacks.push_back(new EarthAttack2({aimTargetRect.x - (esize / 2), aimTargetRect.y - (esize / 2), esize, esize}));
+            eSecondaryAttacks.push_back(new EarthAttack2({aimTargetRect.x - 40, aimTargetRect.y - 40, esize, esize}));
             secondaryCooldownEarth = SECONDARY_COOLDOWN_TIME_EARTH;
         }
     }
@@ -564,7 +610,7 @@ private:
 public:
     Player()
     {
-        SDL_Surface* temp = IMG_Load("../assets/character.png");
+        SDL_Surface* temp = IMG_Load("../assets/monk de frente.png");
         texture = SDL_CreateTextureFromSurface(renderer, temp);
         SDL_FreeSurface(temp);
 
@@ -573,11 +619,12 @@ public:
         SDL_FreeSurface(temp);
 
         aimTargetRect = {0, 0, 64, 64};
-        destRect = {0, 0, 64, 64};
+        destRect = {0, 0, 128, 128};
         posX = (float)destRect.x;
         posY = (float)destRect.y;
 
         currentHealth = maxHealth;
+        masks_textures = maskSprites();
     }
 
     ~Player()
@@ -609,7 +656,23 @@ public:
 
     float GetPrimaryCooldown()
     {
-        return primaryCooldownEarth;
+        switch(primaryMask)
+        {
+            case 0:
+                return primaryCooldownEarth;
+                break;
+            case 1:
+                return primaryCooldownFire;
+                break;
+            case 2:
+                return primaryCooldownAir;
+                break;
+            case 3:
+                return primaryCooldownWater;
+                break;
+        }
+
+        return 0.0;
     }
 
     float GetSecondaryCooldown()
@@ -632,6 +695,7 @@ public:
         }
         if(primaryCooldownEarth > 0.0f) primaryCooldownEarth -= deltaTime;
         if(secondaryCooldownEarth > 0.0f) secondaryCooldownEarth -= deltaTime;
+        if(primaryCooldownFire > 0.0f) primaryCooldownFire -= deltaTime;
         if(maskSwitchCooldown > 0.0f) maskSwitchCooldown -= deltaTime;
 
         for(auto it = ePrimaryAttacks.begin(); it != ePrimaryAttacks.end();)
@@ -654,6 +718,30 @@ public:
             }
             else ++it;
         }
+        for(auto it = attacksFire.begin(); it != attacksFire.end();)
+        {
+            (*it)->Update(deltaTime);
+            if(!(*it)->IsAlive())
+            {
+                delete *it;
+                it = attacksFire.erase(it);
+            }
+            else ++it;
+        }
+
+        const Uint8* state = SDL_GetKeyboardState(NULL);
+        bool maskSwitchButton = (state[SDL_SCANCODE_E] 
+        || (controller && SDL_GameControllerGetButton(controller, SDL_GameControllerButton(SDL_CONTROLLER_BUTTON_X))));
+        if(maskSwitchButton && maskSwitchCooldown <= 0.0f)
+        {
+            if(secondaryMask != -1)
+            {
+                int temp = primaryMask;
+                primaryMask = secondaryMask;
+                secondaryMask = temp;
+                maskSwitchCooldown = MASK_SWITCH_COOLDOWN_TIME;
+            }
+        }
 
         Movement(deltaTime);
         Aim();
@@ -674,6 +762,9 @@ public:
         if (gridX >= 0 && gridX < 24 && gridY >= 0 && gridY < 16) {
             map[gridY][gridX] = 1;
         }
+
+        masks_bounds[primaryMask].x = destRect.x + offsetX;
+        masks_bounds[primaryMask].y = destRect.y + offsetY;
     }
 
     void Render()
@@ -681,6 +772,7 @@ public:
         if(aimTargetReady) SDL_RenderCopy(renderer, aim_target, NULL, &aimTargetRect);
         for(auto* a : ePrimaryAttacks) a->Render();
         for(auto* a : eSecondaryAttacks) a->Render();
+        for(auto* a : attacksFire) a->Render();
         
         if(damageCooldown > 0.0f)
         {
@@ -692,6 +784,8 @@ public:
         }
 
         SDL_RenderCopy(renderer, texture, NULL, &destRect);
+
+        SDL_RenderCopy(renderer, masks_textures[primaryMask], NULL, &masks_bounds[primaryMask]);
     }
 };
 
