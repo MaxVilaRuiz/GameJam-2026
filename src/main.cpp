@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <queue>
+#include <stdio.h>
 
 SDL_Window* window;
 SDL_Renderer* renderer;
@@ -30,6 +31,9 @@ private:
 
     bool damagePlayer = false;
     bool inPlayerRange = false;
+
+    float damageTime = 0.0f;
+    const float DAMAGE_TIME_TOTAL = 0.2f;
 
     const float speed = 100.0f;
 
@@ -151,7 +155,7 @@ public:
     void TakeDamage(int amount)
     {
         health -= amount;
-        std::cout << health << std::endl;
+        damageTime = DAMAGE_TIME_TOTAL;
     }
 
     bool IsAlive() const { return health > 0; }
@@ -159,13 +163,20 @@ public:
 
     void Update(double deltaTime)
     {
-        std::pair<float, float> dir = BFS();
+        if(damageTime > 0.0f)
+        {
+            damageTime -= deltaTime;
+        }
+        else
+        {
+            std::pair<float, float> dir = BFS();
 
-        posX += dir.first * speed * deltaTime;
-        posY += dir.second * speed * deltaTime;
+            posX += dir.first * speed * deltaTime;
+            posY += dir.second * speed * deltaTime;
 
-        destRect.x = (int)posX;
-        destRect.y = (int)posY;
+            destRect.x = (int)posX;
+            destRect.y = (int)posY;
+        }
 
         int dx = destRect.x - playerPos.first;
         int dy = destRect.y - playerPos.second;
@@ -176,6 +187,8 @@ public:
 
     void Render()
     {
+        if(damageTime > 0.0f) SDL_SetTextureColorMod(texture, 255, 100, 100);
+        else SDL_SetTextureColorMod(texture, 255, 255, 255);
         SDL_RenderCopy(renderer, texture, NULL, &destRect);
     }
 };
@@ -264,6 +277,22 @@ private:
     float PRIMARY_COOLDOWN_TIME_AIR = 0.4f;
     float primaryCooldownWater = 0.0f;
     float PRIMARY_COOLDOWN_TIME_WATER = 0.4f;
+
+    std::vector<SDL_Texture*> maskSprites()
+    {
+        std::vector<SDL_Texture*> sprites(4);
+        std::vector<char*> names = {"aire 1.png", "awa 1.png", "foc 1.png", "terra 1.png"};
+
+        for(int i = 0; i < 4; i++)
+        {
+            char* name = names[i];
+            char namebuffer[128];
+            sprintf(namebuffer, "../assets/%s", name);
+            SDL_Surface* temp = IMG_Load(namebuffer);
+            sprites[i] = SDL_CreateTextureFromSurface(renderer, temp);
+            SDL_FreeSurface(temp);
+        }
+    }
 
     void Movement(double deltaTime)
     {
@@ -393,7 +422,6 @@ private:
 
     void PrimaryAttack()
     {
-
         if(primaryMask == 0 && primaryCooldownEarth <= 0.0f && aimTargetReady)
         {
             int esize = 64;
@@ -453,53 +481,57 @@ public:
         return currentHealth;
     }
 
-    void Update(double deltaTime) {
-
-    int tileW = displayBounds.w / 24;
-    int tileH = displayBounds.h / 16;
-    int gridX = (destRect.x + destRect.w / 2) / tileW;
-    int gridY = (destRect.y + destRect.h / 2) / tileH;
-
-    if (gridX >= 0 && gridX < 24 && gridY >= 0 && gridY < 16) {
-        map[gridY][gridX] = 0;
-    }
-
-    if(damageCooldown > 0.0f){
-        damageCooldown -= deltaTime;
-    }
-
-    if(primaryCooldownEarth > 0.0f) primaryCooldownEarth -= deltaTime;
-
-    for(auto it = attacks.begin(); it != attacks.end();)
+    float GetPrimaryCooldown()
     {
-        (*it)->Update(deltaTime);
-        if(!(*it)->IsAlive())
-        {
-            delete *it;
-            it = attacks.erase(it);
+        return primaryCooldownEarth;
+    }
+
+    void Update(double deltaTime) {
+        int tileW = displayBounds.w / 24;
+        int tileH = displayBounds.h / 16;
+        int gridX = (destRect.x + destRect.w / 2) / tileW;
+        int gridY = (destRect.y + destRect.h / 2) / tileH;
+
+        if (gridX >= 0 && gridX < 24 && gridY >= 0 && gridY < 16) {
+            map[gridY][gridX] = 0;
         }
-        else ++it;
+
+        if(damageCooldown > 0.0f){
+            damageCooldown -= deltaTime;
+        }
+
+        if(primaryCooldownEarth > 0.0f) primaryCooldownEarth -= deltaTime;
+
+        for(auto it = attacks.begin(); it != attacks.end();)
+        {
+            (*it)->Update(deltaTime);
+            if(!(*it)->IsAlive())
+            {
+                delete *it;
+                it = attacks.erase(it);
+            }
+            else ++it;
+        }
+
+        Movement(deltaTime);
+        Aim();
+
+        if((SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)) || 
+        (controller && SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 1000)){
+            PrimaryAttack();
+        }
+
+        if(SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT)){
+            SecondaryAttack();
+        }
+
+        gridX = (destRect.x + destRect.w / 2) / tileW;
+        gridY = (destRect.y + destRect.h / 2) / tileH;
+
+        if (gridX >= 0 && gridX < 24 && gridY >= 0 && gridY < 16) {
+            map[gridY][gridX] = 1;
+        }
     }
-
-    Movement(deltaTime);
-    Aim();
-
-    if((SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)) || 
-    (controller && SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 1000)){
-        PrimaryAttack();
-    }
-
-    if(SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT)){
-        SecondaryAttack();
-    }
-
-    gridX = (destRect.x + destRect.w / 2) / tileW;
-    gridY = (destRect.y + destRect.h / 2) / tileH;
-
-    if (gridX >= 0 && gridX < 24 && gridY >= 0 && gridY < 16) {
-        map[gridY][gridX] = 1;
-    }
-}
 
     void Render()
     {
@@ -545,6 +577,8 @@ public:
 class UI
 {
 private:
+    Player* player;
+
     SDL_Texture* heart_full_tex;
     SDL_Texture* heart_half_tex;
     SDL_Texture* heart_empty_tex;
@@ -554,10 +588,19 @@ private:
 
     std::vector<int> hearts; // 0 full, 1 half, 2 empty
 
+    SDL_Texture* icon_mainatt_kbm;
+    SDL_Texture* icon_mainatt_cont;
+    SDL_Texture* icon_secatt_kbm;
+    SDL_Texture* icon_secatt_cont;
+
+    SDL_Rect mainAttRect, secAttRect;
+
 public:
 
-    UI()
+    UI(Player* _player)
     {
+        player = _player;
+
         SDL_Surface* temp = IMG_Load("../assets/heart_full.png");
         heart_full_tex = SDL_CreateTextureFromSurface(renderer, temp);
         SDL_FreeSurface(temp);
@@ -570,9 +613,20 @@ public:
         heart_empty_tex = SDL_CreateTextureFromSurface(renderer, temp);
         SDL_FreeSurface(temp);
 
-        heartsStartPos = {10, 10, 32, 32};
+        temp = IMG_Load("../assets/icon_atm_mk.png");
+        icon_mainatt_kbm = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
+
+        temp = IMG_Load("../assets/icon_ats_mk.png");
+        icon_secatt_kbm = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
+
+        heartsStartPos = {32, 32, 64, 64};
         heartsRect = heartsStartPos;
         hearts = std::vector<int>(5, 0);
+
+        mainAttRect = {50, displayBounds.h - 164, 128, 128};
+        secAttRect = {208, displayBounds.h - 164, 128, 128};
 
         SetHearts(10);
     }
@@ -609,10 +663,16 @@ public:
 
             SDL_RenderCopy(renderer, heart, NULL, &heartsRect);
 
-            heartsRect.x += 36;
+            heartsRect.x += 80;
         }
         
         heartsRect.x = heartsStartPos.x;
+
+        if(player->GetPrimaryCooldown() > 0.0f) SDL_SetTextureAlphaMod(icon_mainatt_kbm, 100);
+        else SDL_SetTextureAlphaMod(icon_mainatt_kbm, 255);
+
+        SDL_RenderCopy(renderer, icon_mainatt_kbm, NULL, &mainAttRect);
+        SDL_RenderCopy(renderer, icon_secatt_kbm, NULL, &secAttRect);
     }
 };
 
@@ -677,7 +737,7 @@ int main()
     Tilemap* tilemap = new Tilemap();
     enemies.push_back(new Enemy());
     
-    UI* canvas = new UI();
+    UI* canvas = new UI(player);
 
     for(int i = 0; i < SDL_NumJoysticks(); i++)
     {
