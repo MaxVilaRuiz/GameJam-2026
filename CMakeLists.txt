@@ -24,6 +24,12 @@ add_executable(${APP})
 #if macosx bundle: add_executable(${APP} MACOSX_BUNDLE)
 target_sources(${APP} PRIVATE 
     src/main.cpp
+    src/globals/global.cpp
+    src/entities/enemy.cpp
+    src/attacks/earth_attack.cpp
+    src/entities/player.cpp
+    src/utils/tile_map.cpp
+    src/utils/ui.cpp
 )
 
 target_link_libraries(${APP} PRIVATE SDL2::SDL2main SDL2::SDL2 SDL2_image::SDL2_image SDL2_mixer::SDL2_mixer)

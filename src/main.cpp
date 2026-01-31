@@ -6,8 +6,12 @@
 #include <queue>
 #include <stdio.h>
 
-SDL_Window* window;
-SDL_Renderer* renderer;
+#include "./entities/enemy.hpp"
+#include "./globals/global.hpp"
+#include "./attacks/earth_attack.hpp"
+#include "./entities/player.hpp"
+#include "./utils/tile_map.hpp"
+#include "./utils/ui.hpp"
 
 SDL_Rect displayBounds;
 std::pair<int, int> TILE_SIZE;
