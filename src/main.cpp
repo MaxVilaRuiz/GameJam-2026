@@ -1,11 +1,9 @@
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_mixer.h>
 #include <iostream>
 #include <vector>
 #include <queue>
-
-const int WINDOW_HEIGHT = 1080;
-const int WINDOW_WIDTH = 1920;
 
 SDL_Window* window;
 SDL_Renderer* renderer;
@@ -15,6 +13,9 @@ SDL_Rect displayBounds;
 bool running = true;
 
 SDL_GameController* controller = nullptr;
+
+Mix_Music* mainTheme;
+Mix_Music* shopTheme;
 
 std::vector<std::vector<int>> map;
 std::pair<int, int> playerPos;
@@ -90,50 +91,62 @@ public:
         return {dx / mag, dy / mag};
     }
 
-    std::pair<float, float> BFS()
+    std::pair<float, float> BFS() {
+    int tileW = displayBounds.w / 24;
+    int tileH = displayBounds.h / 16;
+    
+    if (tileW == 0 || tileH == 0) return {0.0f, 0.0f};
+
+    int startX = (destRect.x + destRect.w / 2) / tileW;
+    int startY = (destRect.y + destRect.h / 2) / tileH;
+
+    if (startX < 0 || startX >= 24 || startY < 0 || startY >= 16) {
+        return {0.0f, 0.0f}; // Se queda quieto si está fuera del mapa
+    }
+
+    std::vector<std::vector<bool>> visited(16, std::vector<bool>(24, false));
+    
+
+    visited[startY][startX] = true; 
+    
+    std::vector<std::vector<std::pair<int, int>>> parent(16, std::vector<std::pair<int, int>>(24, {startX, startY}));
+
+    std::queue<std::pair<int, int>> q;
+    q.push({startX, startY});
+
+    std::pair<int, int> goal = {-1, -1};
+    bool found = false;
+    
+    while(!q.empty())
     {
-        int startX = (destRect.x + destRect.w / 2) / (displayBounds.w / 24);
-        int startY = (destRect.y + destRect.h / 2) / (displayBounds.h / 16);
+        std::pair<int, int> c = q.front();
+        q.pop();
 
-        std::vector<std::vector<bool>> visited(16, std::vector<bool>(24, false));
-        visited[startY][startX] = true;
-        std::vector<std::vector<std::pair<int, int>>> parent(16, std::vector<std::pair<int, int>>(24, {startX, startY}));
-
-        std::queue<std::pair<int, int>> q;
-        q.push({startX, startY});
-
-        std::pair<int, int> goal = {-1, -1};
-        bool found = false;
-        while(!q.empty())
+        if(map[c.second][c.first])
         {
-            std::pair<int, int> c = q.front();
-            q.pop();
-
-            if(map[c.second][c.first])
-            {
-                found = true;
-                goal = c;
-                break;
-            }
-
-            for(std::pair<int, int>& d : Directions(c))
-            {
-                if(ValidPosition(d) && !visited[d.second][d.first])
-                {
-                    visited[d.second][d.first] = true;
-                    parent[d.second][d.first] = c;
-                    q.push(d);
-                }
-            }
+            found = true;
+            goal = c;
+            break;
         }
 
-        if(found) return BacktrackPath(parent, {startX, startY}, goal);
-        else
+        for(std::pair<int, int>& d : Directions(c))
         {
-            damagePlayer = true;
-            return {0.0, 0.0};
+            if(ValidPosition(d) && !visited[d.second][d.first])
+            {
+                visited[d.second][d.first] = true;
+                parent[d.second][d.first] = c;
+                q.push(d);
+            }
         }
     }
+
+    if(found) return BacktrackPath(parent, {startX, startY}, goal);
+    else
+    {
+        damagePlayer = true;
+        return {0.0, 0.0};
+    }
+}
 
     void TakeDamage(int amount)
     {
@@ -429,43 +442,53 @@ public:
         return currentHealth;
     }
 
-    void Update(double deltaTime)
-    {
-        map[(destRect.y + destRect.h / 2) / (displayBounds.h / 16)][(destRect.x + destRect.w / 2) / (displayBounds.w / 24)] = 0;
-        if(damageCooldown > 0.0f)
-        {
-            damageCooldown -= deltaTime;
-        }
+    void Update(double deltaTime) {
 
-        if(primaryCooldown > 0.0f) primaryCooldown -= deltaTime;
+    int tileW = displayBounds.w / 24;
+    int tileH = displayBounds.h / 16;
+    int gridX = (destRect.x + destRect.w / 2) / tileW;
+    int gridY = (destRect.y + destRect.h / 2) / tileH;
 
-        for(auto it = attacks.begin(); it != attacks.end();)
-        {
-            (*it)->Update(deltaTime);
-            if(!(*it)->IsAlive())
-            {
-                delete *it;
-                it = attacks.erase(it);
-            }
-            else ++it;
-        }
-
-        Movement(deltaTime);
-        Aim();
-
-        if((SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)) || 
-        (controller && SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 1000))
-        {
-            PrimaryAttack();
-        }
-
-        if(SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT))
-        {
-            SecondaryAttack();
-        }
-
-        map[(destRect.y + destRect.h / 2) / (displayBounds.h / 16)][(destRect.x + destRect.w / 2) / (displayBounds.w / 24)] = 1;
+    if (gridX >= 0 && gridX < 24 && gridY >= 0 && gridY < 16) {
+        map[gridY][gridX] = 0;
     }
+
+    if(damageCooldown > 0.0f){
+        damageCooldown -= deltaTime;
+    }
+
+    if(primaryCooldown > 0.0f) primaryCooldown -= deltaTime;
+
+    for(auto it = attacks.begin(); it != attacks.end();)
+    {
+        (*it)->Update(deltaTime);
+        if(!(*it)->IsAlive())
+        {
+            delete *it;
+            it = attacks.erase(it);
+        }
+        else ++it;
+    }
+
+    Movement(deltaTime);
+    Aim();
+
+    if((SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)) || 
+    (controller && SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > 1000)){
+        PrimaryAttack();
+    }
+
+    if(SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT)){
+        SecondaryAttack();
+    }
+
+    gridX = (destRect.x + destRect.w / 2) / tileW;
+    gridY = (destRect.y + destRect.h / 2) / tileH;
+
+    if (gridX >= 0 && gridX < 24 && gridY >= 0 && gridY < 16) {
+        map[gridY][gridX] = 1;
+    }
+}
 
     void Render()
     {
@@ -607,6 +630,28 @@ int main()
         return 1;
     }
 
+    if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
+    {
+        std::cerr << "Mix_OpenAudio failed" << std::endl;
+        return 1;
+    }
+
+    int flags = MIX_INIT_MP3;
+    int initted = Mix_Init(flags);
+    if ((initted & flags) != flags) {
+        printf("No se pudo inicializar soporte MP3: %s\n", Mix_GetError());
+        return 1;
+    }
+
+    mainTheme = Mix_LoadMUS("../assets/palo.mp3");
+    shopTheme = Mix_LoadMUS("../assets/shop_music.mp3");
+
+    if(!mainTheme || !shopTheme)
+    {
+        std::cerr << "Mix_LoadMUS failed" << std::endl;
+        return 1;
+    }
+
     SDL_GetRendererOutputSize(renderer, &displayBounds.w, &displayBounds.h);
 
     Uint64 frameStart, frameEnd;
@@ -648,6 +693,22 @@ int main()
         {
             if(e.type == SDL_QUIT)
                 running = false;
+
+
+            else if(e.type == SDL_KEYDOWN)
+            {
+                switch(e.key.keysym.sym)
+                {
+                    case SDLK_1:
+                        Mix_HaltMusic();
+                        Mix_PlayMusic(mainTheme, -1);
+                        break;
+                    case SDLK_2:
+                        Mix_HaltMusic();
+                        Mix_PlayMusic(shopTheme, -1);
+                        break;
+                }
+            }
         }
 
         player->Update(deltaTime);
@@ -688,16 +749,10 @@ int main()
         SDL_RenderPresent(renderer);
         }
 
-        delete(player);
-        delete(tilemap);
-    
-        for (auto e : enemies) delete (e);
-        enemies.clear();    
-        
-    
-        delete(canvas);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-    }
-
+    free(player);
+    free(tilemap);
+    free(canvas);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+}
