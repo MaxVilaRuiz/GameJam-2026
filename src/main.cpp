@@ -8,7 +8,7 @@
 
 #include "./entities/enemy.hpp"
 #include "./globals/global.hpp"
-// #include "./attacks/earth_attack.hpp"
+#include "./attacks/earth_attack1.hpp"
 // #include "./entities/player.hpp"
 // #include "./utils/tile_map.hpp"
 // #include "./utils/ui.hpp"
@@ -65,52 +65,6 @@ public:
         if (angle < 0) angle += 360.0f;
         
         SDL_RenderCopyEx(renderer, texture, NULL, &rect, angle, NULL, SDL_FLIP_NONE);
-    }
-};
-
-class EarthAttack1
-{
-private:
-    SDL_Texture* texture;
-    SDL_Rect rect;
-
-    float BASE_DURATION = 1.0f;
-    float currentTime;
-
-public:
-
-    EarthAttack1(SDL_Rect spawnRect)
-    {
-        SDL_Surface* temp = IMG_Load("../assets/crack.png");
-        texture = SDL_CreateTextureFromSurface(renderer, temp);
-        SDL_FreeSurface(temp);
-        rect = spawnRect;
-        currentTime = BASE_DURATION;
-        
-        for (int i = 0; i < enemies.size(); ++i) {
-            if (enemies[i]->InPlayerRange()) {
-                if (SDL_HasIntersection(enemies[i]->EnemyRect(), &rect)) {
-                    enemies[i]->TakeDamage(1);
-                }
-            }
-        }
-    }
-
-    ~EarthAttack1()
-    {
-        if(texture) SDL_DestroyTexture(texture);
-    }
-
-    bool IsAlive() const { return currentTime > 0.0f; } 
-
-    void Update(double deltaTime)
-    {
-        currentTime -= deltaTime;
-    }
-
-    void Render()
-    {
-        SDL_RenderCopy(renderer, texture, NULL, &rect);
     }
 };
 
