@@ -10,6 +10,7 @@ SDL_Window* window;
 SDL_Renderer* renderer;
 
 SDL_Rect displayBounds;
+std::pair<int, int> TILE_SIZE;
 
 bool running = true;
 
@@ -139,7 +140,7 @@ public:
 
         for(std::pair<int, int>& d : Directions(c))
         {
-            if(ValidPosition(d) && !visited[d.second][d.first])
+            if(ValidPosition(d) && !visited[d.second][d.first] && map[d.second][d.first] != 2)
             {
                 visited[d.second][d.first] = true;
                 parent[d.second][d.first] = c;
@@ -246,14 +247,19 @@ public:
     }
 };
 
+<<<<<<< Updated upstream
 
 
 class FireAttack1
+=======
+class EarthAttack2
+>>>>>>> Stashed changes
 {
 private:
     SDL_Texture* texture;
     SDL_Rect rect;
 
+<<<<<<< Updated upstream
     //pair<int, int> dirf;
 
 public:
@@ -265,16 +271,53 @@ public:
         SDL_FreeSurface(temp);
         rect = spawnRect;
         
+=======
+    float BASE_DURATION = 10.0f;
+    float currentTime;
+
+    int tileX0, tileX1, tileY0, tileY1;
+    
+public:
+    EarthAttack2(SDL_Rect spawnRect)
+    {
+        SDL_Surface* temp = IMG_Load("../assets/rock.png");
+        texture = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
+        rect = spawnRect;
+        currentTime = BASE_DURATION;
+
+        int tileX0 = rect.x / TILE_SIZE.first;
+        int tileY0 = rect.y / TILE_SIZE.second;
+        int tileX1 = (rect.x + rect.w - 1) / TILE_SIZE.first;
+        int tileY1 = (rect.y + rect.h - 1) / TILE_SIZE.second;
+        tileX0 = SDL_clamp(tileX0, 0, 23);
+        tileX1 = SDL_clamp(tileX1, 0, 23);
+        tileY0 = SDL_clamp(tileY0, 0, 15);
+        tileY1 = SDL_clamp(tileY1, 0, 15);
+
+        for(int ty = tileY0; ty <= tileY1; ty++)
+        {
+            for(int tx = tileX0; tx <= tileX1; tx++)
+            {
+                map[ty][tx] = 2;
+            }
+        }
+>>>>>>> Stashed changes
         
         for (int i = 0; i < enemies.size(); ++i) {
             if (enemies[i]->InPlayerRange()) {
                 if (SDL_HasIntersection(enemies[i]->EnemyRect(), &rect)) {
+<<<<<<< Updated upstream
                     enemies[i]->TakeDamage(1);
+=======
+                    enemies[i]->TakeDamage(2); // Change??
+>>>>>>> Stashed changes
                 }
             }
         }
     }
 
+<<<<<<< Updated upstream
     ~FireAttack1()
     {
         if(texture) SDL_DestroyTexture(texture);
@@ -286,6 +329,25 @@ public:
     {
 
         
+=======
+    ~EarthAttack2()
+    {
+        if(texture) SDL_DestroyTexture(texture);
+        for(int ty = tileY0; ty <= tileY1; ty++)
+        {
+            for(int tx = tileX0; tx <= tileX1; tx++)
+            {
+                map[ty][tx] = 0;
+            }
+        }
+    }
+
+    bool IsAlive() const { return currentTime > 0.0f; } 
+
+    void Update(double deltaTime)
+    {
+        currentTime -= deltaTime;
+>>>>>>> Stashed changes
     }
 
     void Render()
@@ -294,7 +356,10 @@ public:
     }
 };
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 class Player
 {
 private:
@@ -321,8 +386,13 @@ private:
     int primaryMask = 0;
     int secondaryMask = -1;
 
+<<<<<<< Updated upstream
     std::vector<EarthAttack1*> attacksEarth;
     std::vector<FireAttack1*> attacksFire;
+=======
+    std::vector<EarthAttack1*> ePrimaryAttacks;
+    std::vector<EarthAttack2*> eSecondaryAttacks;
+>>>>>>> Stashed changes
     float primaryCooldownEarth = 0.0f;
     float PRIMARY_COOLDOWN_TIME_EARTH = 0.4f;
     float primaryCooldownFire = 0.0f;
@@ -332,6 +402,18 @@ private:
     float primaryCooldownWater = 0.0f;
     float PRIMARY_COOLDOWN_TIME_WATER = 0.4f;
 
+<<<<<<< Updated upstream
+=======
+    float secondaryCooldownEarth = 0.0f;
+    float SECONDARY_COOLDOWN_TIME_EARTH = 5.0f;
+
+    float maskSwitchCooldown = 0.0f;
+    float MASK_SWITCH_COOLDOWN_TIME = 1.0f;
+
+    const int offsetX = 40;
+    const int offsetY = 0;
+
+>>>>>>> Stashed changes
     std::vector<SDL_Texture*> maskSprites()
     {
         std::vector<SDL_Texture*> sprites(4);
@@ -481,7 +563,11 @@ private:
             int esize = 64;
             if(maskLvl[0] >=3) esize += 25;
             
+<<<<<<< Updated upstream
             attacksEarth.push_back(new EarthAttack1({aimTargetRect.x - (esize - 64)/2, aimTargetRect.y - (esize - 64)/2 , esize, esize}));
+=======
+            ePrimaryAttacks.push_back(new EarthAttack1({aimTargetRect.x - (esize - 64)/2, aimTargetRect.y - (esize - 64)/2 , esize, esize}));
+>>>>>>> Stashed changes
             primaryCooldownEarth = PRIMARY_COOLDOWN_TIME_EARTH;
         }
         else if (primaryMask == 1 && primaryCooldownFire <= 0.0f && aimTargetReady){
@@ -497,7 +583,12 @@ private:
 
     void SecondaryAttack()
     {
-
+        if(primaryMask == 0 && secondaryCooldownEarth <= 0.0f && aimTargetReady)
+        {
+            int esize = 128;
+            eSecondaryAttacks.push_back(new EarthAttack2({aimTargetRect.x - (esize / 2), aimTargetRect.y - (esize / 2), esize, esize}));
+            secondaryCooldownEarth = SECONDARY_COOLDOWN_TIME_EARTH;
+        }
     }
 
 public:
@@ -523,8 +614,13 @@ public:
     {
         if(texture) SDL_DestroyTexture(texture);
         if(aim_target) SDL_DestroyTexture(aim_target);
+<<<<<<< Updated upstream
         for(auto* a : attacksEarth) delete a;
         attacksEarth.clear();
+=======
+        for(auto* a : ePrimaryAttacks) delete a;
+        ePrimaryAttacks.clear();
+>>>>>>> Stashed changes
     }
 
     const SDL_Rect* PlayerRect()
@@ -549,6 +645,11 @@ public:
         return primaryCooldownEarth;
     }
 
+    float GetSecondaryCooldown()
+    {
+        return secondaryCooldownEarth;
+    }
+
     void Update(double deltaTime) {
         int tileW = displayBounds.w / 24;
         int tileH = displayBounds.h / 16;
@@ -563,14 +664,35 @@ public:
             damageCooldown -= deltaTime;
         }
         if(primaryCooldownEarth > 0.0f) primaryCooldownEarth -= deltaTime;
+<<<<<<< Updated upstream
 
         for(auto it = attacksEarth.begin(); it != attacksEarth.end();)
+=======
+        if(secondaryCooldownEarth > 0.0f) secondaryCooldownEarth -= deltaTime;
+        if(maskSwitchCooldown > 0.0f) maskSwitchCooldown -= deltaTime;
+
+        for(auto it = ePrimaryAttacks.begin(); it != ePrimaryAttacks.end();)
+>>>>>>> Stashed changes
         {
             (*it)->Update(deltaTime);
             if(!(*it)->IsAlive())
             {
                 delete *it;
+<<<<<<< Updated upstream
                 it = attacksEarth.erase(it);
+=======
+                it = ePrimaryAttacks.erase(it);
+            }
+            else ++it;
+        }
+        for(auto it = eSecondaryAttacks.begin(); it != eSecondaryAttacks.end();)
+        {
+            (*it)->Update(deltaTime);
+            if(!(*it)->IsAlive())
+            {
+                delete *it;
+                it = eSecondaryAttacks.erase(it);
+>>>>>>> Stashed changes
             }
             else ++it;
         }
@@ -583,7 +705,8 @@ public:
             PrimaryAttack();
         }
 
-        if(SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT)){
+        if(SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT) || 
+        (controller && SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERLEFT) > 1000)){
             SecondaryAttack();
         }
 
@@ -598,7 +721,21 @@ public:
     void Render()
     {
         if(aimTargetReady) SDL_RenderCopy(renderer, aim_target, NULL, &aimTargetRect);
+<<<<<<< Updated upstream
         for(auto* a : attacksEarth) a->Render();
+=======
+        for(auto* a : ePrimaryAttacks) a->Render();
+        for(auto* a : eSecondaryAttacks) a->Render();
+        
+        if(damageCooldown > 0.0f)
+        {
+            SDL_SetTextureColorMod(texture, 255, 100, 100);
+        }
+        else
+        {
+            SDL_SetTextureColorMod(texture, 255, 255, 255);
+        }
+>>>>>>> Stashed changes
         SDL_RenderCopy(renderer, texture, NULL, &destRect);
     }
 };
@@ -616,6 +753,9 @@ public:
         SDL_Surface* temp = IMG_Load("../assets/Overworld.png");
         tilemap_tex = SDL_CreateTextureFromSurface(renderer, temp);
         SDL_FreeSurface(temp);
+
+        TILE_SIZE.first = displayBounds.w / 24;
+        TILE_SIZE.second = displayBounds.h / 24;
     }
 
     void Render()
@@ -634,7 +774,6 @@ public:
         destRect.y = 0;
     }
 };
-
 
 class UI
 {
@@ -681,6 +820,14 @@ public:
 
         temp = IMG_Load("../assets/icon_ats_mk.png");
         icon_secatt_kbm = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
+
+        temp = IMG_Load("../assets/icon_atm_cont.png");
+        icon_mainatt_cont = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
+
+        temp = IMG_Load("../assets/icon_ats_cont.png");
+        icon_secatt_cont = SDL_CreateTextureFromSurface(renderer, temp);
         SDL_FreeSurface(temp);
 
         heartsStartPos = {32, 32, 64, 64};
@@ -730,11 +877,26 @@ public:
         
         heartsRect.x = heartsStartPos.x;
 
-        if(player->GetPrimaryCooldown() > 0.0f) SDL_SetTextureAlphaMod(icon_mainatt_kbm, 100);
-        else SDL_SetTextureAlphaMod(icon_mainatt_kbm, 255);
+        if(!controller)
+        {
+            if(player->GetPrimaryCooldown() > 0.0f) SDL_SetTextureAlphaMod(icon_mainatt_kbm, 100);
+            else SDL_SetTextureAlphaMod(icon_mainatt_kbm, 255);
+            SDL_RenderCopy(renderer, icon_mainatt_kbm, NULL, &mainAttRect);
 
-        SDL_RenderCopy(renderer, icon_mainatt_kbm, NULL, &mainAttRect);
-        SDL_RenderCopy(renderer, icon_secatt_kbm, NULL, &secAttRect);
+            if(player->GetSecondaryCooldown() > 0.0f) SDL_SetTextureAlphaMod(icon_secatt_kbm, 100);
+            else SDL_SetTextureAlphaMod(icon_secatt_kbm, 255);
+            SDL_RenderCopy(renderer, icon_secatt_kbm, NULL, &secAttRect);
+        }
+        else
+        {
+            if(player->GetPrimaryCooldown() > 0.0f) SDL_SetTextureAlphaMod(icon_mainatt_cont, 100);
+            else SDL_SetTextureAlphaMod(icon_mainatt_cont, 255);
+            SDL_RenderCopy(renderer, icon_mainatt_cont, NULL, &mainAttRect);
+
+            if(player->GetSecondaryCooldown() > 0.0f) SDL_SetTextureAlphaMod(icon_secatt_cont, 100);
+            else SDL_SetTextureAlphaMod(icon_secatt_cont, 255);
+            SDL_RenderCopy(renderer, icon_secatt_cont, NULL, &secAttRect);
+        }
     }
 };
 
