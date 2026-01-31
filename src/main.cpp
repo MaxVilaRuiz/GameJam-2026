@@ -193,6 +193,7 @@ private:
     float currentTime;
 
 public:
+
     EarthAttack1(SDL_Rect spawnRect)
     {
         SDL_Surface* temp = IMG_Load("../assets/crack.png");
@@ -251,12 +252,18 @@ private:
     const float INVINCIBILITY_TIME = 1.0f;
 
     std::vector<int> maskLvl = {0, 0, 0, 0};
-    int primaryMask = -1;
+    int primaryMask = 0;
     int secondaryMask = -1;
 
     std::vector<EarthAttack1*> attacks;
-    float primaryCooldown = 0.0f;
-    float PRIMARY_COOLDOWN_TIME = 0.4f;
+    float primaryCooldownEarth = 0.0f;
+    float PRIMARY_COOLDOWN_TIME_EARTH = 0.4f;
+    float primaryCooldownFire = 0.0f;
+    float PRIMARY_COOLDOWN_TIME_FIRE = 0.4f;
+    float primaryCooldownAir = 0.0f;
+    float PRIMARY_COOLDOWN_TIME_AIR = 0.4f;
+    float primaryCooldownWater = 0.0f;
+    float PRIMARY_COOLDOWN_TIME_WATER = 0.4f;
 
     void Movement(double deltaTime)
     {
@@ -386,10 +393,14 @@ private:
 
     void PrimaryAttack()
     {
-        if(primaryCooldown <= 0.0f)
+
+        if(primaryMask == 0 && primaryCooldownEarth <= 0.0f && aimTargetReady)
         {
-            attacks.push_back(new EarthAttack1(aimTargetRect));
-            primaryCooldown = PRIMARY_COOLDOWN_TIME;
+            int esize = 64;
+            if(maskLvl[0] >=3) esize += 25;
+            
+            attacks.push_back(new EarthAttack1({aimTargetRect.x - (esize - 64)/2, aimTargetRect.y - (esize - 64)/2 , esize, esize}));
+            primaryCooldownEarth = PRIMARY_COOLDOWN_TIME_EARTH;
         }
     }
 
@@ -457,7 +468,7 @@ public:
         damageCooldown -= deltaTime;
     }
 
-    if(primaryCooldown > 0.0f) primaryCooldown -= deltaTime;
+    if(primaryCooldownEarth > 0.0f) primaryCooldownEarth -= deltaTime;
 
     for(auto it = attacks.begin(); it != attacks.end();)
     {
