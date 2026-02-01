@@ -11,6 +11,7 @@
 #include "../attacks/earth/earth_attack1.hpp"
 #include "../attacks/earth/earth_attack2.hpp"
 #include "../attacks/fire/fire_attack1.hpp"
+#include "../attacks/fire/fire_attack2.hpp"
 
 class Player
 {
@@ -41,8 +42,10 @@ private:
     std::vector<SDL_Rect> masks_bounds;
 
     std::vector<FireAttack1*> attacksFire;
+    std::vector<FireAttack2*> fSecondaryAttacks;
     std::vector<EarthAttack1*> ePrimaryAttacks;
     std::vector<EarthAttack2*> eSecondaryAttacks;
+
     float primaryCooldownEarth;
     float PRIMARY_COOLDOWN_TIME_EARTH;
     float primaryCooldownFire;
@@ -54,6 +57,8 @@ private:
 
     float secondaryCooldownEarth;
     float SECONDARY_COOLDOWN_TIME_EARTH;
+    float secondaryCooldownFire;
+    float SECONDARY_COOLDOWN_TIME_FIRE;
 
     float maskSwitchCooldown;
     float MASK_SWITCH_COOLDOWN_TIME;

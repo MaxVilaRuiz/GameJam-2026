@@ -45,10 +45,14 @@ Player::~Player()
 {
     if(texture) SDL_DestroyTexture(texture);
     if(aim_target) SDL_DestroyTexture(aim_target);
+    for(auto* a : attacksFire) delete a;
+    attacksFire.clear();
     for(auto* a : ePrimaryAttacks) delete a;
     ePrimaryAttacks.clear();
     for(auto* a : eSecondaryAttacks) delete a;
     eSecondaryAttacks.clear();
+    // for(auto* a : fSecondaryAttacks) delete a;
+    // fSecondaryAttacks.clear();
 }
 
 
@@ -228,6 +232,13 @@ void Player::SecondaryAttack()
         eSecondaryAttacks.push_back(new EarthAttack2({aimTargetRect.x - 40, aimTargetRect.y - 40, esize, esize}));
         secondaryCooldownEarth = SECONDARY_COOLDOWN_TIME_EARTH;
     }
+
+    if(primaryMask == 1 && secondaryCooldownFire <= 0.0f)
+    {
+        int fsize = 80;
+        //fSecondaryAttacks.push_back(new EarthAttack2({aimTargetRect.x - 40, aimTargetRect.y - 40, fsize/9, fsize}));
+        secondaryCooldownFire = SECONDARY_COOLDOWN_TIME_FIRE;
+    }
 }
 
 
@@ -314,6 +325,16 @@ void Player::Update(double deltaTime)
         }
         else ++it;
     }
+    // for(auto it = fSecondaryAttacks.begin(); it != fSecondaryAttacks.end();)
+    // {
+    //     (*it)->Update(deltaTime);
+    //     if(!(*it)->IsAlive())
+    //     {
+    //         delete *it;
+    //         it = fSecondaryAttacks.erase(it);
+    //     }
+    //     else ++it;
+    // }
     for(auto it = attacksFire.begin(); it != attacksFire.end();)
     {
         (*it)->Update(deltaTime);
@@ -368,6 +389,7 @@ void Player::Render()
     if(aimTargetReady) SDL_RenderCopy(renderer, aim_target, NULL, &aimTargetRect);
     for(auto* a : ePrimaryAttacks) a->Render();
     for(auto* a : eSecondaryAttacks) a->Render();
+    //for(auto* a : fSecondaryAttacks) a->Render();
     for(auto* a : attacksFire) a->Render();
     
     if(damageCooldown > 0.0f)
