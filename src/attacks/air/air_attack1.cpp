@@ -5,7 +5,7 @@
 AirAttack1::AirAttack1(SDL_Rect spawnRect, SDL_Rect DirectionRect) :
     speedf(467)
 {
-    SDL_Surface* temp = IMG_Load("../assets/p_wind.png");
+    SDL_Surface* temp = IMG_Load("../assets/p_air.png");
     texture = SDL_CreateTextureFromSurface(renderer, temp);
     SDL_FreeSurface(temp);
     rect = spawnRect;
