@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "./entities/enemy.hpp"
+#include "./entities/merchant.hpp"
 #include "./globals/global.hpp"
 #include "./attacks/earth/earth_attack1.hpp"
 #include "./attacks/earth/earth_attack2.hpp"
@@ -14,7 +15,6 @@
 #include "./entities/player.hpp"
 #include "./utils/tile_map.hpp"
 #include "./utils/ui.hpp"
-
 
 int main()
 {
@@ -74,8 +74,11 @@ int main()
     map = std::vector<std::vector<int>>(16, std::vector<int>(24, 0));
 
     Player* player = new Player();
-    Tilemap* tilemap = new Tilemap();
-    enemies.push_back(new Enemy());
+    Merchant* merchant = nullptr;
+    currentPhase = "combat";
+    Tilemap* tilemap = new Tilemap(time(NULL));
+
+    for(int i = 0; i < 5; i++) enemies.push_back(new Enemy(tilemap->GetRandomTile()));
     
     UI* canvas = new UI(player);
 
@@ -123,7 +126,30 @@ int main()
         }
 
         player->Update(deltaTime);
-        
+
+        if(currentPhase == "combat") tilemap->Update();
+        if(tilemap->StaircaseActive())
+        {
+            if(SDL_HasIntersection(player->PlayerRect(), tilemap->StaircaseRect()))
+            {
+                delete tilemap;
+                if(currentPhase == "combat")
+                {
+                    merchant = new Merchant();
+                    SDL_Rect playerSize = *player->PlayerRect();
+                    player->SetPosition(displayBounds.w/2 - playerSize.w/2, displayBounds.h/2 - playerSize.h/2 - TILE_SIZE.second);
+                    currentPhase = "shop";
+                }
+                else if(currentPhase == "shop")
+                {
+                    delete merchant;
+                    merchant = nullptr;
+                    for(int i = 0; i < 5; i++) enemies.push_back(new Enemy(tilemap->GetRandomTile()));
+                    currentPhase = "combat";
+                }
+                tilemap = new Tilemap(time(NULL));
+            }
+        }
 
         for(auto it = enemies.begin(); it != enemies.end(); )
         {
@@ -145,20 +171,47 @@ int main()
             }
             else ++it;
         }
+
+        if(merchant)
+        {
+            int distx = (player->PlayerRect()->x + player->PlayerRect()->w/2) - (merchant->GetRect()->x + merchant->GetRect()->w/2);
+            int disty = (player->PlayerRect()->y + player->PlayerRect()->h/2) - (merchant->GetRect()->y + merchant->GetRect()->h/2);
+            float mag = sqrtf(distx * distx + disty * disty);
+            if(mag < 250)
+            {
+                merchant->SwitchMerchantState(true);
+            }
+            else
+            {
+                merchant->SwitchMerchantState(false);
+            }
+        }
         
 
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
 
         tilemap->Render();
-        player->Render();
 
-        for (auto e : enemies) e->Render();
+        std::vector<std::pair<int, std::function<void()>>> drawList;
+
+        for (auto* en : enemies)
+            drawList.emplace_back(en->EnemyRect()->y + en->EnemyRect()->h, [en](){ en->Render(); });
+
+        if (merchant)
+            drawList.emplace_back(merchant->GetRect()->y + merchant->GetRect()->h, [merchant](){ merchant->Render(); });
+
+        drawList.emplace_back(player->PlayerRect()->y + player->PlayerRect()->h, [player](){ player->Render(); });
+
+        std::stable_sort(drawList.begin(), drawList.end(),
+            [](auto &a, auto &b){ return a.first < b.first; });
+
+        for (auto &entry : drawList) entry.second();
         
         canvas->Render();
 
         SDL_RenderPresent(renderer);
-        }
+    }
 
     free(player);
     free(tilemap);

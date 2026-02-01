@@ -12,6 +12,8 @@
 #include "../attacks/earth/earth_attack2.hpp"
 #include "../attacks/fire/fire_attack1.hpp"
 #include "../attacks/fire/fire_attack2.hpp"
+#include "../attacks/air/air_attack1.hpp"
+#include "../attacks/water/water_attack1.hpp"
 
 class Player
 {
@@ -19,10 +21,14 @@ private:
     SDL_Texture* texture;
     SDL_Texture* aim_target;
 
+    std::vector<SDL_Texture*> sprites;
+
     SDL_Rect aimTargetRect;
     SDL_Rect destRect;
 
     bool aimTargetReady;
+
+    int dirIndex;
 
     float posX, posY;
     const float speed = 250.0f;
@@ -36,13 +42,15 @@ private:
     const float INVINCIBILITY_TIME = 1.0f;
 
     std::vector<int> maskLvl;
-    int primaryMask;
-    int secondaryMask;
+    int primaryMask;                                // 0: Earth; 1: Fire; 2: Air; 3: Water 
+    int secondaryMask;                              // 0: Earth; 1: Fire; 2: Air; 3: Water 
     std::vector<SDL_Texture*> masks_textures;
     std::vector<SDL_Rect> masks_bounds;
 
     std::vector<FireAttack1*> attacksFire;
     std::vector<FireAttack2*> fSecondaryAttacks;
+    std::vector<AirAttack1*> attacksAir;
+    std::vector<WaterAttack1*> attacksWater;
     std::vector<EarthAttack1*> ePrimaryAttacks;
     std::vector<EarthAttack2*> eSecondaryAttacks;
 
@@ -90,6 +98,8 @@ public:
     float GetPrimaryCooldown();
 
     float GetSecondaryCooldown();
+
+    void SetPosition(int x, int y);
 
     void Update(double deltaTime);
 

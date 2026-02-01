@@ -19,3 +19,5 @@ std::pair<int, int> playerPos{0, 0};
 std::pair<int, int> TILE_SIZE{0, 0};
 
 std::vector<Enemy*> enemies{};
+
+std::string currentPhase;

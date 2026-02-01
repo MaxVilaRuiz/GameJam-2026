@@ -8,7 +8,7 @@ Player::Player() :
     damageCooldown(0.0f),
     maskLvl({0, 0, 0, 0}),
     primaryMask(0),
-    secondaryMask(1),
+    secondaryMask(3),
     primaryCooldownEarth(0.0f),
     PRIMARY_COOLDOWN_TIME_EARTH(0.4f),
     primaryCooldownFire(0.0f),
@@ -16,7 +16,7 @@ Player::Player() :
     primaryCooldownAir(0.0f),
     PRIMARY_COOLDOWN_TIME_AIR(0.4f),
     primaryCooldownWater(0.0f),
-    PRIMARY_COOLDOWN_TIME_WATER(0.4f),
+    PRIMARY_COOLDOWN_TIME_WATER(1.0f),
     secondaryCooldownEarth(0.0f),
     SECONDARY_COOLDOWN_TIME_EARTH(5.0f),
     secondaryCooldownFire(0.0f),
@@ -39,6 +39,18 @@ Player::Player() :
 
         currentHealth = maxHealth;
         masks_textures = maskSprites();
+
+        sprites = std::vector<SDL_Texture*>(8, nullptr);
+        std::vector<std::string> names = {"monk ladeado.png", "monk esquerra davant.png", "monk de frente.png", "monk ladeat davant dreta.png",
+            "monk a la esquerra.png", "monk espalda esqera.png", "monk espaldote.png", "monk espalda dreta.png"};
+        for(int i = 0; i < 8; i++)
+        {
+            SDL_Surface* temp = IMG_Load(((std::string)SDL_GetBasePath() + "../assets/monk/" + names[i]).c_str());
+            sprites[i] = SDL_CreateTextureFromSurface(renderer, temp);
+            SDL_FreeSurface(temp);
+        }
+
+        texture = sprites[2];
     }
 
 
@@ -104,6 +116,11 @@ void Player::Movement(double deltaTime)
 
             destRect.x = (int)posX;
             destRect.y = (int)posY;
+
+            float angle = atan2f(diry, dirx);
+            if(angle < 0.0) angle += 2.0 * M_PI;
+            dirIndex = (int)((angle + M_PI / 8) / (M_PI / 4)) % 8;
+            texture = sprites[dirIndex];
         }
     }
     else
@@ -131,6 +148,11 @@ void Player::Movement(double deltaTime)
 
             destRect.x = (int)posX;
             destRect.y = (int)posY;
+
+            float angle = atan2f(fy, fx);
+            if(angle < 0.0) angle += 2.0 * M_PI;
+            dirIndex = (int)((angle + M_PI / 8) / (M_PI / 4)) % 8;
+            texture = sprites[dirIndex];
         }
     }
 
@@ -215,21 +237,32 @@ void Player::PrimaryAttack()
         ePrimaryAttacks.push_back(new EarthAttack1({aimTargetRect.x - (esize - 64)/2, aimTargetRect.y - (esize - 64)/2 , esize, esize}));
         primaryCooldownEarth = PRIMARY_COOLDOWN_TIME_EARTH;
     }
-    else if (primaryMask == 1 && primaryCooldownFire <= 0.0f && aimTargetReady){
-
+    else if (primaryMask == 1 && primaryCooldownFire <= 0.0f && aimTargetReady) {
         int fsize = 40;
         if(maskLvl[0] >=3) fsize += 20;
         
         attacksFire.push_back(new FireAttack1({destRect.x + destRect.w/2, destRect.y+destRect.h/2, fsize, fsize}, aimTargetRect));
         primaryCooldownFire = PRIMARY_COOLDOWN_TIME_FIRE;
-
+    }
+    else if (primaryMask == 2 && primaryCooldownAir <= 0.0f && aimTargetReady) {
+        int asize = 40;
+        if(maskLvl[0] >=3) asize += 20;
+        
+        attacksAir.push_back(new AirAttack1({destRect.x + destRect.w/2, destRect.y+destRect.h/2, asize, asize}, aimTargetRect));
+        primaryCooldownAir = PRIMARY_COOLDOWN_TIME_AIR;
+    }
+    else if (primaryMask == 3 && primaryCooldownWater <= 0.0f && aimTargetReady) {
+        int wsize = 40;
+        if(maskLvl[0] >=3) wsize += 20;
+        
+        attacksWater.push_back(new WaterAttack1({destRect.x + destRect.w/2, destRect.y+destRect.h/2, wsize, wsize}, aimTargetRect));
+        primaryCooldownWater = PRIMARY_COOLDOWN_TIME_WATER;
     }
 }
 
 void Player::SecondaryAttack() 
 {
-    if(primaryMask == 0 && secondaryCooldownEarth <= 0.0f && aimTargetReady)
-    {
+    if (primaryMask == 0 && secondaryCooldownEarth <= 0.0f && aimTargetReady) {
         int esize = 128;
         eSecondaryAttacks.push_back(new EarthAttack2({aimTargetRect.x - 40, aimTargetRect.y, esize, esize}));
         secondaryCooldownEarth = SECONDARY_COOLDOWN_TIME_EARTH;
@@ -305,6 +338,14 @@ float Player::GetSecondaryCooldown()
     return 0.0;
 }
 
+void Player::SetPosition(int x, int y)
+{
+    destRect.x = x;
+    destRect.y = y;
+    posX = (float)x;
+    posY = (float)y;
+}
+
 void Player::Update(double deltaTime) 
 {
     int tileW = displayBounds.w / 24;
@@ -323,6 +364,9 @@ void Player::Update(double deltaTime)
     if(secondaryCooldownEarth > 0.0f) secondaryCooldownEarth -= deltaTime;
     if(primaryCooldownFire > 0.0f) primaryCooldownFire -= deltaTime;
     if(secondaryCooldownFire > 0.0f) secondaryCooldownFire -= deltaTime;
+    if(primaryCooldownAir > 0.0f) primaryCooldownAir -= deltaTime;
+    if(primaryCooldownWater > 0.0f) primaryCooldownWater -= deltaTime;
+
     if(maskSwitchCooldown > 0.0f) maskSwitchCooldown -= deltaTime;
 
     for(auto it = ePrimaryAttacks.begin(); it != ePrimaryAttacks.end();)
@@ -374,10 +418,31 @@ void Player::Update(double deltaTime)
         }
         else ++it;
     }
+    for(auto it = attacksAir.begin(); it != attacksAir.end();)
+    {
+        (*it)->Update(deltaTime);
+        if(!(*it)->IsAlive())
+        {
+            delete *it;
+            it = attacksAir.erase(it);
+        }
+        else ++it;
+    }
+    for(auto it = attacksWater.begin(); it != attacksWater.end();)
+    {
+        (*it)->Update(deltaTime);
+        if(!(*it)->IsAlive())
+        {
+            delete *it;
+            it = attacksWater.erase(it);
+        }
+        else ++it;
+    }
 
     const Uint8* state = SDL_GetKeyboardState(NULL);
     bool maskSwitchButton = (state[SDL_SCANCODE_E] 
     || (controller && SDL_GameControllerGetButton(controller, SDL_GameControllerButton(SDL_CONTROLLER_BUTTON_X))));
+
     if(maskSwitchButton && maskSwitchCooldown <= 0.0f)
     {
         if(secondaryMask != -1)
@@ -420,6 +485,8 @@ void Player::Render()
     for(auto* a : eSecondaryAttacks) a->Render();
     for(auto* a : fSecondaryAttacks) a->Render();
     for(auto* a : attacksFire) a->Render();
+    for(auto* a : attacksAir) a->Render();
+    for(auto* a : attacksWater) a->Render();
     
     if(damageCooldown > 0.0f)
     {
@@ -430,7 +497,13 @@ void Player::Render()
         SDL_SetTextureColorMod(texture, 255, 255, 255);
     }
 
+    if(dirIndex >= 5) {
+        SDL_RenderCopy(renderer, masks_textures[primaryMask], NULL, &masks_bounds[primaryMask]);
+    }
+
     SDL_RenderCopy(renderer, texture, NULL, &destRect);
 
-    SDL_RenderCopy(renderer, masks_textures[primaryMask], NULL, &masks_bounds[primaryMask]);
+    if(dirIndex < 5) {
+        SDL_RenderCopy(renderer, masks_textures[primaryMask], NULL, &masks_bounds[primaryMask]);
+    }
 }

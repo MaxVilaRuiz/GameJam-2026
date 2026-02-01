@@ -5,6 +5,7 @@
 #include <SDL_mixer.h>
 #include <vector>
 #include <queue>
+#include <iostream>
 
 #include "../globals/global.hpp"
 
@@ -33,7 +34,7 @@ private:
     bool ValidPosition(std::pair<int, int> p);
 
 public:
-    Enemy();
+    Enemy(std::pair<int, int> spawnPos);
 
     const SDL_Rect* EnemyRect();
 
