@@ -7,7 +7,7 @@ Enemy::Enemy() :
     inPlayerRange(false),
     damageTime(0.0f)
 {
-    destRect = {100, 100, 128, 128};
+    destRect = {150, 150, 128, 128};
     posX = (float)destRect.x;
     posY = (float)destRect.y;
     health = 4;
@@ -126,6 +126,11 @@ std::pair<float, float> Enemy::BFS()
         return {0.0, 0.0};
     }
 }
+
+std::pair<float, float> Enemy::GetPos(){
+    return{posX, posY};
+}
+
 
 void Enemy::TakeDamage(int amount)
 {

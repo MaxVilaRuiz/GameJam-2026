@@ -37,11 +37,12 @@ void FireAttack1::Update(double deltaTime)
     rect.y += (int)auy;
 
     for (int i = 0; i < enemies.size(); ++i) {
-        if (enemies[i]->InPlayerRange()) {
-            if (SDL_HasIntersection(enemies[i]->EnemyRect(), &rect)) {
-                enemies[i]->TakeDamage(1);
-                rect.x = -1000;
-            }
+        SDL_Rect aux = rect;
+        aux.h -= 20;
+        aux.w -= 20;
+        if (SDL_HasIntersection(enemies[i]->EnemyRect(), &rect)) {
+            enemies[i]->TakeDamage(1);
+            rect.x = -1000;
         }
     }
 }

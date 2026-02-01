@@ -23,15 +23,17 @@ private:
         std::pair<int,int> d;
     };
 
+    float cd = 0;
+
     float ang;
     SDL_Texture* texture1;
     SDL_Texture* texture2;
     SDL_Rect rect;
     double lifetime;
 
-    float angle (std::pair<float, float> dir);
+    float angle (SDL_Rect spawnRect, std::pair<float, float> dir);
 
-    rectangle aimer(SDL_Rect spawnRect);
+    rectangle aimer(SDL_Rect spawnRect, std::pair<float, float> dir);
     
 public:
     FireAttack2(SDL_Rect spawnRect, std::pair<float, float> dir);

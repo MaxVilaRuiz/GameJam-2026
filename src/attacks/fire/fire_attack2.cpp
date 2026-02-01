@@ -1,23 +1,22 @@
 #include "fire_attack2.hpp"
 
-float FireAttack2::angle(std::pair<float, float> dir){
+float FireAttack2::angle(SDL_Rect spawnRect, std::pair<float, float> dir){
 
-    float mag = sqrtf((spawnRect.x-dir.first) * (spawnRect.x-dir.first) + (spawnRect.y-dir.second)*(spawnRect.y-dir.second));
-    float dirx = (dir.first - spawnRect.x) / mag;
-    float diry = (dir.second - spawnRect.y) / mag;
+    float dirx = dir.first;
+    float diry = dir.second;
     float angle = atan2(diry, dirx) * 180.0f / M_PI;
-    if (angle < 0) angle += 360.0f;
+    angle -= 180;
+    while (angle < 0) angle += 360.0f;
+    while(angle > 360) angle -= 360.0f;
+    
+
+    return angle;
 
 }
 
-rectangle FireAttack2::aimer(SDL_Rect spawnRect, std::pair<float, float> dir){
+FireAttack2::rectangle FireAttack2::aimer(SDL_Rect spawnRect, std::pair<float, float> dir){
 
     rectangle aux;
-    float angx = ang-90;
-    if(angx < 0) angx += 360;
-    
-    aux.a.first = spawnRect.x + 5 / tan(angx);  
-    aux.a.second = spawnRect.y + 5 * tan(angx);  
 
     float x = spawnRect.x;
     float y = spawnRect.y;
@@ -28,17 +27,17 @@ rectangle FireAttack2::aimer(SDL_Rect spawnRect, std::pair<float, float> dir){
     float dist = 3.5f;
 
     // Punt perpendicular esquerra
-    aux.d.first  = x + (-dy) * dist;
-    aux.d.second = y + ( dx) * dist;
+    aux.c.first  = x + (-dy) * dist;
+    aux.c.second = y + ( dx) * dist;
 
-    aux.c.first  = x + ( dy) * dist;
-    aux.c.second = y + (-dx) * dist;
+    aux.d.first  = x + ( dy) * dist;
+    aux.d.second = y + (-dx) * dist;
 
-    aux.a.first = aux.c.first + rect.w;
-    aux.a.second = aux.c.second + rect.h;
+    aux.a.first = aux.c.first + rect.w * dx / 18;
+    aux.a.second = aux.c.second + rect.h * dy / 18;
 
-    aux.b.first = aux.d.first + rect.w;
-    aux.b.second = aux.d.second + rect.h;
+    aux.b.first = aux.d.first + rect.w * dx / 18;
+    aux.b.second = aux.d.second + rect.h * dy / 18;
 
     return aux;
 
@@ -48,15 +47,15 @@ rectangle FireAttack2::aimer(SDL_Rect spawnRect, std::pair<float, float> dir){
 // Constructor
 FireAttack2::FireAttack2(SDL_Rect spawnRect, std::pair<float, float> dir) 
 {
-    SDL_Surface* temp = IMG_Load("../assets/secondaryFireAttk_1.png");
+    SDL_Surface* temp = IMG_Load("../assets/secondartFireAttk_1.png");
     texture1 = SDL_CreateTextureFromSurface(renderer, temp);
     SDL_FreeSurface(temp);
-    SDL_Surface* temp = IMG_Load("../assets/secondaryFireAttk_2.png");
+    temp = IMG_Load("../assets/secondartFireAttk_2.png");
     texture2 = SDL_CreateTextureFromSurface(renderer, temp);
     SDL_FreeSurface(temp);
     rect = spawnRect;
-    lifetime = 1;00;
-    ang = angle(dir);
+    lifetime = 1.00;
+    ang = angle(spawnRect, dir);
 }
 
 
@@ -70,30 +69,76 @@ FireAttack2::~FireAttack2()
 
 // Public functions
 bool FireAttack2::IsAlive() const { 
-    return rect.x > -10 & rect.y > -10 & rect.x < 2250 & rect.y < 1250; 
+    return lifetime >= 0; 
 } 
 
 void FireAttack2::Update(double deltaTime, std::pair<float, float> dir, SDL_Rect spawnRect)
 {
+    
 
     lifetime -= deltaTime;
-    ang = angle(dir);
-
-    std::pair<int, int> start1 = {spawnRect.x- 4, spawnRect.y};
-    std::pair<int, int> start2 = {spawnRect.x+ 4, spawnRect.y};
-
+    cd -= deltaTime;
+    ang = angle(spawnRect, dir);
+    rect = spawnRect;
+    rectangle hitbox = aimer(spawnRect, dir);
 
     for (int i = 0; i < enemies.size(); ++i) {
         if (enemies[i]->InPlayerRange()) {
-            if (SDL_HasIntersection(enemies[i]->EnemyRect(), &rect)) {
-                enemies[i]->TakeDamage(1);
+            std::pair<float, float> epos = enemies[i]->GetPos();
+            FireAttack2::rectangle erect;
+            erect.a = epos;
+            erect.b = {epos.first + 80, epos.second};
+            erect.c = {epos.first, epos.second + 128};
+            erect.d = {epos.first + 80, epos.second + 128};
+
+            int offx = hitbox.a.first - hitbox.c.first;
+            int offy = hitbox.a.second - hitbox.c.second;
+
+            offx/=6;
+            offy/=6;
+
+            bool done = 0;
+
+            for(int j = 0; j<7; j++){
+
+                int eqis = hitbox.c.first + offx * j;
+                int iy = hitbox.c.second + offy * j;
+
+                if( eqis < erect.b.first && eqis > erect.a.first && iy < erect.c.second && iy > erect.a.second && cd <= 0 ){
+                    enemies[i]->TakeDamage(1);
+                    done = 1;
+                    cd = 0.27;
+                    break;
+                }
+
+            }
+
+            offx = hitbox.b.first - hitbox.d.first;
+            offy = hitbox.b.second - hitbox.d.second;
+
+            if(!done){
+                for(int j = 0; j<7; j++){
+
+                    int eqis = hitbox.d.first + (offx * j);
+                    int iy = hitbox.d.second + (offy * j);
+
+                    if( eqis < erect.b.first && eqis > erect.a.first && iy < erect.c.second && iy > erect.a.second && cd <= 0 ){
+                        enemies[i]->TakeDamage(1);
+                        done = 1;
+                        cd = 0.27;
+                        break;
+                    }
+
+                }
             }
         }
+
     }
 }
 
 void FireAttack2::Render()
 {
-    
-    SDL_RenderCopyEx(renderer, texture, NULL, &rect, angle, NULL, SDL_FLIP_NONE);
+    SDL_Point roteen = { 80, 35 };
+    if(((int)(lifetime * 10) % 2) == 0) SDL_RenderCopyEx(renderer, texture1, NULL, &rect, ang, &roteen, SDL_FLIP_NONE);
+    SDL_RenderCopyEx(renderer, texture2, NULL, &rect, ang, &roteen, SDL_FLIP_NONE);
 }

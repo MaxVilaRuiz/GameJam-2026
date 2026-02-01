@@ -19,6 +19,8 @@ Player::Player() :
     PRIMARY_COOLDOWN_TIME_WATER(0.4f),
     secondaryCooldownEarth(0.0f),
     SECONDARY_COOLDOWN_TIME_EARTH(5.0f),
+    secondaryCooldownFire(0.0f),
+    SECONDARY_COOLDOWN_TIME_FIRE(5.0f),
     maskSwitchCooldown(0.0f),
     MASK_SWITCH_COOLDOWN_TIME(1.0f)
     {
@@ -51,8 +53,8 @@ Player::~Player()
     ePrimaryAttacks.clear();
     for(auto* a : eSecondaryAttacks) delete a;
     eSecondaryAttacks.clear();
-    // for(auto* a : fSecondaryAttacks) delete a;
-    // fSecondaryAttacks.clear();
+    for(auto* a : fSecondaryAttacks) delete a;
+    fSecondaryAttacks.clear();
 }
 
 
@@ -207,7 +209,7 @@ void Player::PrimaryAttack()
 {
     if(primaryMask == 0 && primaryCooldownEarth <= 0.0f && aimTargetReady)
     {
-        int esize = 64;
+        int esize = 48;
         if(maskLvl[0] >=3) esize += 25;
         
         ePrimaryAttacks.push_back(new EarthAttack1({aimTargetRect.x - (esize - 64)/2, aimTargetRect.y - (esize - 64)/2 , esize, esize}));
@@ -229,14 +231,21 @@ void Player::SecondaryAttack()
     if(primaryMask == 0 && secondaryCooldownEarth <= 0.0f && aimTargetReady)
     {
         int esize = 128;
-        eSecondaryAttacks.push_back(new EarthAttack2({aimTargetRect.x - 40, aimTargetRect.y - 40, esize, esize}));
+        eSecondaryAttacks.push_back(new EarthAttack2({aimTargetRect.x - 40, aimTargetRect.y, esize, esize}));
         secondaryCooldownEarth = SECONDARY_COOLDOWN_TIME_EARTH;
     }
 
     if(primaryMask == 1 && secondaryCooldownFire <= 0.0f)
     {
         int fsize = 80;
-        //fSecondaryAttacks.push_back(new EarthAttack2({aimTargetRect.x - 40, aimTargetRect.y - 40, fsize/9, fsize}));
+        float x = aimTargetRect.x - posX;
+        float y = aimTargetRect.y - posY;
+        float mag = sqrtf(x * x + y * y);
+        float f1 = x / mag;
+        float f2 = y / mag;
+        std::pair<float, float> jofre = {f1, f2};
+
+        fSecondaryAttacks.push_back(new FireAttack2({(int)posX - 12, (int)posY-18 , fsize, fsize}, jofre));
         secondaryCooldownFire = SECONDARY_COOLDOWN_TIME_FIRE;
     }
 }
@@ -283,7 +292,17 @@ float Player::GetPrimaryCooldown()
 
 float Player::GetSecondaryCooldown()
 {
-    return secondaryCooldownEarth;
+    switch(primaryMask)
+    {
+        case 0:
+            return secondaryCooldownEarth;
+            break;
+        case 1:
+            return secondaryCooldownFire;
+            break;
+    }
+
+    return 0.0;
 }
 
 void Player::Update(double deltaTime) 
@@ -303,6 +322,7 @@ void Player::Update(double deltaTime)
     if(primaryCooldownEarth > 0.0f) primaryCooldownEarth -= deltaTime;
     if(secondaryCooldownEarth > 0.0f) secondaryCooldownEarth -= deltaTime;
     if(primaryCooldownFire > 0.0f) primaryCooldownFire -= deltaTime;
+    if(secondaryCooldownFire > 0.0f) secondaryCooldownFire -= deltaTime;
     if(maskSwitchCooldown > 0.0f) maskSwitchCooldown -= deltaTime;
 
     for(auto it = ePrimaryAttacks.begin(); it != ePrimaryAttacks.end();)
@@ -325,16 +345,25 @@ void Player::Update(double deltaTime)
         }
         else ++it;
     }
-    // for(auto it = fSecondaryAttacks.begin(); it != fSecondaryAttacks.end();)
-    // {
-    //     (*it)->Update(deltaTime);
-    //     if(!(*it)->IsAlive())
-    //     {
-    //         delete *it;
-    //         it = fSecondaryAttacks.erase(it);
-    //     }
-    //     else ++it;
-    // }
+    for(auto it = fSecondaryAttacks.begin(); it != fSecondaryAttacks.end();)
+    {
+
+        int fsize = 80;
+        float x = aimTargetRect.x - posX;
+        float y = aimTargetRect.y - posY;
+        float mag = sqrtf(x * x + y * y);
+        float f1 = (x) / mag;
+        float f2 = (y) / mag;
+        std::pair<float, float> jofre = {f1, f2};
+
+        (*it)->Update(deltaTime, jofre, {(int) posX - 12, (int) posY-18 , fsize, fsize});
+        if(!(*it)->IsAlive())
+        {
+            delete *it;
+            it = fSecondaryAttacks.erase(it);
+        }
+        else ++it;
+    }
     for(auto it = attacksFire.begin(); it != attacksFire.end();)
     {
         (*it)->Update(deltaTime);
@@ -389,7 +418,7 @@ void Player::Render()
     if(aimTargetReady) SDL_RenderCopy(renderer, aim_target, NULL, &aimTargetRect);
     for(auto* a : ePrimaryAttacks) a->Render();
     for(auto* a : eSecondaryAttacks) a->Render();
-    //for(auto* a : fSecondaryAttacks) a->Render();
+    for(auto* a : fSecondaryAttacks) a->Render();
     for(auto* a : attacksFire) a->Render();
     
     if(damageCooldown > 0.0f)
