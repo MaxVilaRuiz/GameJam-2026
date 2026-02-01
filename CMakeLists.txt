@@ -30,7 +30,7 @@ target_sources(${APP} PRIVATE
     src/attacks/earth/earth_attack2.cpp
     src/attacks/fire/fire_attack1.cpp
     src/entities/player.cpp
-    # src/utils/tile_map.cpp
+    src/utils/tile_map.cpp
     # src/utils/ui.cpp
 )
 
