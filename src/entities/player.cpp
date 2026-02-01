@@ -297,6 +297,14 @@ float Player::GetSecondaryCooldown()
     return secondaryCooldownEarth;
 }
 
+void Player::SetPosition(int x, int y)
+{
+    destRect.x = x;
+    destRect.y = y;
+    posX = (float)x;
+    posY = (float)y;
+}
+
 void Player::Update(double deltaTime) 
 {
     int tileW = displayBounds.w / 24;

@@ -64,7 +64,29 @@ void Tilemap::GenerateCombatRoom()
 
 void Tilemap::GenerateShopRoom()
 {
-    randomroom = shoproom;
+    for(int i = 0; i < 16; i++)
+    {
+        for(int j = 0; j < 24; j++)
+        {
+            if(i == 0)
+            {
+                int r = rand() % walls.size();
+                randomroom[i][j] = walls[r];
+            }
+            else if(i == 15)
+            {
+                randomroom[i][j] = &wallr1;
+            }
+            else
+            {
+                int r = rand() % grounds.size();
+                randomroom[i][j] = grounds[r];
+            }
+        }
+    }
+
+    randomroom[9][8] = &srcStairRect;
+    staircaseRect = {8 * TILE_SIZE.first, 9 * TILE_SIZE.second, TILE_SIZE.first, TILE_SIZE.second};
     staircase = true;
 }
 
@@ -104,17 +126,31 @@ std::pair<int, int> Tilemap::GetRandomTile()
     return {x, y};
 }
 
+void Tilemap::GenerateStaircase()
+{
+    std::pair<int, int> pixel = GetRandomTile();
+    int col = pixel.first / TILE_SIZE.first;
+    int row = pixel.second / TILE_SIZE.second;
+    if(col < 0 || col >= 24 || row < 0 || row >= 16)
+    {
+        std::cerr << "[tilemap] Out-of-bounds from GetRandomTile, skipping\n";
+        return;
+    }
+    randomroom[row][col] = &srcStairRect;
+    staircaseRect = {col * TILE_SIZE.first, row * TILE_SIZE.second, TILE_SIZE.first, TILE_SIZE.second};
+}
+
 void Tilemap::Update()
 {
     if(currentPhase == "combat" && enemies.empty() && !staircase)
     {
-        std::pair<int, int> pixel = GetRandomTile();
-        int col = pixel.first / TILE_SIZE.first;
-        int row = pixel.second / TILE_SIZE.second;
-        if(col < 0 || col >= 24 || row < 0 || row >= 16) return;
-        randomroom[row][col] = &srcStairRect;
-        staircaseRect = {col * TILE_SIZE.first, row * TILE_SIZE.second, TILE_SIZE.first, TILE_SIZE.second};
-        std::cout << "GENERATED STAIRCASE AT " << staircaseRect.x << ", " << staircaseRect.y << std::endl;
+        GenerateStaircase();
         staircase = true;
     }
+}
+
+SDL_Rect* Tilemap::StaircaseRect()
+{
+    if(!staircase) return nullptr;
+    return &staircaseRect;
 }

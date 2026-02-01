@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include "./entities/enemy.hpp"
+#include "./entities/merchant.hpp"
 #include "./globals/global.hpp"
 #include "./attacks/earth/earth_attack1.hpp"
 #include "./attacks/earth/earth_attack2.hpp"
@@ -73,10 +74,11 @@ int main()
     map = std::vector<std::vector<int>>(16, std::vector<int>(24, 0));
 
     Player* player = new Player();
+    Merchant* merchant = nullptr;
     currentPhase = "combat";
     Tilemap* tilemap = new Tilemap(time(NULL));
 
-    for(int i = 0; i < 5; i++) enemies.push_back(new Enemy(tilemap->GetRandomTile()));
+    for(int i = 0; i < 1; i++) enemies.push_back(new Enemy(tilemap->GetRandomTile()));
     
     UI* canvas = new UI(player);
 
@@ -124,7 +126,30 @@ int main()
         }
 
         player->Update(deltaTime);
+
         if(currentPhase == "combat") tilemap->Update();
+        if(tilemap->StaircaseActive())
+        {
+            if(SDL_HasIntersection(player->PlayerRect(), tilemap->StaircaseRect()))
+            {
+                delete tilemap;
+                if(currentPhase == "combat")
+                {
+                    merchant = new Merchant();
+                    SDL_Rect playerSize = *player->PlayerRect();
+                    player->SetPosition(displayBounds.w/2 - playerSize.w/2, displayBounds.h/2 - playerSize.h/2 - TILE_SIZE.second);
+                    currentPhase = "shop";
+                }
+                else if(currentPhase == "shop")
+                {
+                    delete merchant;
+                    merchant = nullptr;
+                    for(int i = 0; i < 1; i++) enemies.push_back(new Enemy(tilemap->GetRandomTile()));
+                    currentPhase = "combat";
+                }
+                tilemap = new Tilemap(time(NULL));
+            }
+        }
 
         for(auto it = enemies.begin(); it != enemies.end(); )
         {
@@ -153,6 +178,8 @@ int main()
 
         tilemap->Render();
         player->Render();
+
+        if(merchant) merchant->Render();
 
         for (auto e : enemies) e->Render();
         

@@ -21,6 +21,8 @@ private:
 
     SDL_Rect chest = {16, 129, 16, 16};
 
+    SDL_Rect clear = {166, 81, 16, 16};
+
     SDL_Rect wall1 = {15, 0, 16, 16};
     SDL_Rect wall2 = {31, 0, 16, 16};
     SDL_Rect wall3 = {95, 0, 16, 16};
@@ -37,8 +39,6 @@ private:
 
     std::vector<std::vector<SDL_Rect*>> randomroom;
 
-    std::vector<std::vector<SDL_Rect*>> shoproom;
-
     void GenerateCombatRoom();
     void GenerateShopRoom();
 
@@ -46,11 +46,15 @@ private:
     SDL_Rect staircaseRect;
     bool staircase = false;
 
+    void GenerateStaircase();
+
 public:
     Tilemap(uint64_t seed);
 
     void Update();
     bool StaircaseActive() { return staircase; }
+
+    SDL_Rect* StaircaseRect();
 
     std::pair<int, int> GetRandomTile();
     void Render();
