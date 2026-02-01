@@ -17,7 +17,11 @@ class WaterAttack1
 private:
     SDL_Texture* texture;
     SDL_Rect rect;
+    SDL_Rect direction_rect;
+    
     float speedf;
+    float BASE_DURATION;
+    float currentTime;
 
     std::pair<float, float> dirf;
 public:

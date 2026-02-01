@@ -3,7 +3,9 @@
 
 // Constructor
 WaterAttack1::WaterAttack1(SDL_Rect spawnRect, SDL_Rect DirectionRect) :
-    speedf(467)
+    speedf(467),
+    direction_rect(DirectionRect),
+    BASE_DURATION(1.0f)
 {
     SDL_Surface* temp = IMG_Load("../assets/p_water1.png");
     texture = SDL_CreateTextureFromSurface(renderer, temp);
@@ -12,6 +14,7 @@ WaterAttack1::WaterAttack1(SDL_Rect spawnRect, SDL_Rect DirectionRect) :
     float mag = sqrtf((spawnRect.x-DirectionRect.x) * (spawnRect.x-DirectionRect.x) + (spawnRect.y-DirectionRect.y)*(spawnRect.y-DirectionRect.y));
     dirf.first = (DirectionRect.x - spawnRect.x) / mag;
     dirf.second = (DirectionRect.y - spawnRect.y) / mag;
+    currentTime = BASE_DURATION;
 }
 
 
@@ -24,17 +27,21 @@ WaterAttack1::~WaterAttack1()
 
 // Public functions
 bool WaterAttack1::IsAlive() const { 
-    return rect.x > -10 & rect.y > -10 & rect.x < 2250 & rect.y < 1250; 
+    return (rect.x > -10 & rect.y > -10 & rect.x < 2250 & rect.y < 1250) && (currentTime > 0.0f); 
 } 
 
 void WaterAttack1::Update(double deltaTime)
 {
-
     float aux = deltaTime * speedf * dirf.first;
     float auy = deltaTime * speedf * dirf.second;
 
-    rect.x += (int)aux;
-    rect.y += (int)auy;
+    if (SDL_HasIntersection(&rect, &direction_rect)) {
+        currentTime -= deltaTime;
+    }
+    else {
+        rect.x += (int)aux;
+        rect.y += (int)auy;
+    }
 
     for (int i = 0; i < enemies.size(); ++i) {
         if (enemies[i]->InPlayerRange()) {
