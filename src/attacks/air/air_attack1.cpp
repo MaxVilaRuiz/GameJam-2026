@@ -1,8 +1,8 @@
-#include "wind_attack1.hpp"
+#include "air_attack1.hpp"
 
 
 // Constructor
-WindAttack1::WindAttack1(SDL_Rect spawnRect, SDL_Rect DirectionRect) :
+AirAttack1::AirAttack1(SDL_Rect spawnRect, SDL_Rect DirectionRect) :
     speedf(467)
 {
     SDL_Surface* temp = IMG_Load("../assets/p_wind.png");
@@ -16,18 +16,18 @@ WindAttack1::WindAttack1(SDL_Rect spawnRect, SDL_Rect DirectionRect) :
 
 
 // Destructor
-WindAttack1::~WindAttack1()
+AirAttack1::~AirAttack1()
 {
     if(texture) SDL_DestroyTexture(texture);
 }
 
 
 // Public functions
-bool WindAttack1::IsAlive() const { 
+bool AirAttack1::IsAlive() const { 
     return rect.x > -10 & rect.y > -10 & rect.x < 2250 & rect.y < 1250; 
 } 
 
-void WindAttack1::Update(double deltaTime)
+void AirAttack1::Update(double deltaTime)
 {
 
     float aux = deltaTime * speedf * dirf.first;
@@ -46,7 +46,7 @@ void WindAttack1::Update(double deltaTime)
     }
 }
 
-void WindAttack1::Render()
+void AirAttack1::Render()
 {
     float angle = atan2(dirf.second, dirf.first) * 180.0f / M_PI;
     if (angle < 0) angle += 360.0f;

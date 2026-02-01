@@ -12,7 +12,7 @@
 #include "../../entities/enemy.hpp"
 
 
-class WindAttack1
+class AirAttack1
 {
 private:
     SDL_Texture* texture;
@@ -21,9 +21,9 @@ private:
 
     std::pair<float, float> dirf;
 public:
-    WindAttack1(SDL_Rect spawnRect, SDL_Rect DirectionRect);
+    AirAttack1(SDL_Rect spawnRect, SDL_Rect DirectionRect);
 
-    ~WindAttack1();
+    ~AirAttack1();
 
     bool IsAlive() const;
 
