@@ -8,7 +8,7 @@ Player::Player() :
     damageCooldown(0.0f),
     maskLvl({0, 0, 0, 0}),
     primaryMask(0),
-    secondaryMask(1),
+    secondaryMask(2),
     primaryCooldownEarth(0.0f),
     PRIMARY_COOLDOWN_TIME_EARTH(0.4f),
     primaryCooldownFire(0.0f),
@@ -231,21 +231,25 @@ void Player::PrimaryAttack()
         ePrimaryAttacks.push_back(new EarthAttack1({aimTargetRect.x - (esize - 64)/2, aimTargetRect.y - (esize - 64)/2 , esize, esize}));
         primaryCooldownEarth = PRIMARY_COOLDOWN_TIME_EARTH;
     }
-    else if (primaryMask == 1 && primaryCooldownFire <= 0.0f && aimTargetReady){
-
+    else if (primaryMask == 1 && primaryCooldownFire <= 0.0f && aimTargetReady) {
         int fsize = 40;
         if(maskLvl[0] >=3) fsize += 20;
         
         attacksFire.push_back(new FireAttack1({destRect.x + destRect.w/2, destRect.y+destRect.h/2, fsize, fsize}, aimTargetRect));
         primaryCooldownFire = PRIMARY_COOLDOWN_TIME_FIRE;
-
+    }
+    else if (primaryMask == 2 && primaryCooldownAir <= 0.0f && aimTargetReady) {
+        int asize = 40;
+        if(maskLvl[0] >=3) asize += 20;
+        
+        attacksAir.push_back(new AirAttack1({destRect.x + destRect.w/2, destRect.y+destRect.h/2, asize, asize}, aimTargetRect));
+        primaryCooldownAir = PRIMARY_COOLDOWN_TIME_AIR;
     }
 }
 
 void Player::SecondaryAttack() 
 {
-    if(primaryMask == 0 && secondaryCooldownEarth <= 0.0f && aimTargetReady)
-    {
+    if (primaryMask == 0 && secondaryCooldownEarth <= 0.0f && aimTargetReady) {
         int esize = 128;
         eSecondaryAttacks.push_back(new EarthAttack2({aimTargetRect.x - 40, aimTargetRect.y - 40, esize, esize}));
         secondaryCooldownEarth = SECONDARY_COOLDOWN_TIME_EARTH;
@@ -314,6 +318,7 @@ void Player::Update(double deltaTime)
     if(primaryCooldownEarth > 0.0f) primaryCooldownEarth -= deltaTime;
     if(secondaryCooldownEarth > 0.0f) secondaryCooldownEarth -= deltaTime;
     if(primaryCooldownFire > 0.0f) primaryCooldownFire -= deltaTime;
+    if(primaryCooldownAir > 0.0f) primaryCooldownAir -= deltaTime;
     if(maskSwitchCooldown > 0.0f) maskSwitchCooldown -= deltaTime;
 
     for(auto it = ePrimaryAttacks.begin(); it != ePrimaryAttacks.end();)
@@ -346,10 +351,21 @@ void Player::Update(double deltaTime)
         }
         else ++it;
     }
+    for(auto it = attacksAir.begin(); it != attacksAir.end();)
+    {
+        (*it)->Update(deltaTime);
+        if(!(*it)->IsAlive())
+        {
+            delete *it;
+            it = attacksAir.erase(it);
+        }
+        else ++it;
+    }
 
     const Uint8* state = SDL_GetKeyboardState(NULL);
     bool maskSwitchButton = (state[SDL_SCANCODE_E] 
     || (controller && SDL_GameControllerGetButton(controller, SDL_GameControllerButton(SDL_CONTROLLER_BUTTON_X))));
+
     if(maskSwitchButton && maskSwitchCooldown <= 0.0f)
     {
         if(secondaryMask != -1)
@@ -391,6 +407,7 @@ void Player::Render()
     for(auto* a : ePrimaryAttacks) a->Render();
     for(auto* a : eSecondaryAttacks) a->Render();
     for(auto* a : attacksFire) a->Render();
+    for(auto* a : attacksAir) a->Render();
     
     if(damageCooldown > 0.0f)
     {
