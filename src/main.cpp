@@ -74,7 +74,6 @@ int main()
 
     Player* player = new Player();
     Tilemap* tilemap = new Tilemap(time(NULL));
-    enemies.push_back(new Enemy());
     
     UI* canvas = new UI(player);
 
@@ -97,6 +96,11 @@ int main()
         frameEnd = SDL_GetPerformanceCounter();
         deltaTime = (double)((double)((frameEnd - frameStart) * 1000) / (double)SDL_GetPerformanceFrequency());
         deltaTime /= 1000.0;
+
+        if(enemies.empty())
+        {
+            for(int i = 0; i < 5; i++) enemies.push_back(new Enemy(tilemap->GetRandomTile()));
+        }
 
         SDL_Event e;
         while(SDL_PollEvent(&e))
@@ -157,7 +161,7 @@ int main()
         canvas->Render();
 
         SDL_RenderPresent(renderer);
-        }
+    }
 
     free(player);
     free(tilemap);

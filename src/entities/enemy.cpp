@@ -1,13 +1,13 @@
 #include "enemy.hpp"
 
 // Constructor
-Enemy::Enemy() :
+Enemy::Enemy(std::pair<int, int> spawnPos) :
     // Initialize private variables
     damagePlayer(false),
     inPlayerRange(false),
     damageTime(0.0f)
 {
-    destRect = {displayBounds.w/2, displayBounds.h/2, 128, 128};
+    destRect = {spawnPos.first, spawnPos.second, 128, 128};
     posX = (float)destRect.x;
     posY = (float)destRect.y;
     health = 4;

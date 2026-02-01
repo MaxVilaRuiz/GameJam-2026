@@ -11,9 +11,9 @@ Tilemap::Tilemap(uint64_t seed) :
         SDL_FreeSurface(temp);
 
         TILE_SIZE.first = displayBounds.w / 24;
-        TILE_SIZE.second = displayBounds.h / 24;
+        TILE_SIZE.second = displayBounds.h / 16;
 
-        map = std::vector<std::vector<SDL_Rect*>>(16, std::vector<SDL_Rect*>(24));
+        tiletype = std::vector<std::vector<SDL_Rect*>>(16, std::vector<SDL_Rect*>(24));
 
         int chestpos = -1;
 
@@ -30,23 +30,23 @@ Tilemap::Tilemap(uint64_t seed) :
             {
                 if(i*24+j == chestpos)
                 {
-                    map[i][j] = &chest;
+                    tiletype[i][j] = &chest;
                     continue;
                 }
 
                 if(i == 0)
                 {
                     int r = rand() % walls.size();
-                    map[i][j] = walls[r];
+                    tiletype[i][j] = walls[r];
                 }
                 else if(i == 15)
                 {
-                    map[i][j] = &wallr1;
+                    tiletype[i][j] = &wallr1;
                 }
                 else
                 {
                     int r = rand() % grounds.size();
-                    map[i][j] = grounds[r];
+                    tiletype[i][j] = grounds[r];
                 }
             }
         }
@@ -59,7 +59,7 @@ void Tilemap::Render()
     for(int i = 0; i < 16; i++) {
         for(int j = 0; j < 24; j++)
         {
-            SDL_RenderCopy(renderer, tilemap_tex, map[i][j], &destRect);
+            SDL_RenderCopy(renderer, tilemap_tex, tiletype[i][j], &destRect);
             destRect.x += displayBounds.w / 24 + 1;
         }
         destRect.x = 0;
@@ -68,4 +68,23 @@ void Tilemap::Render()
 
     destRect.x = 0;
     destRect.y = 0;
+}
+
+std::pair<int, int> Tilemap::GetRandomTile()
+{
+    int randpos = -1;
+    do {
+        randpos = rand() % (24 * 16);
+    } while ((randpos / 24) == 0 || (randpos / 24) == 15);
+
+    int row = randpos / 24;
+    int col = randpos % 24;
+
+    int tx = TILE_SIZE.first ? TILE_SIZE.first : (displayBounds.w / 24);
+    int ty = TILE_SIZE.second ? TILE_SIZE.second : (displayBounds.h / 16);
+
+    int x = col * tx + tx / 2;
+    int y = row * ty + ty / 2;
+
+    return {x, y};
 }

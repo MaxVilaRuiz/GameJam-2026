@@ -34,7 +34,7 @@ private:
     bool ValidPosition(std::pair<int, int> p);
 
 public:
-    Enemy();
+    Enemy(std::pair<int, int> spawnPos);
 
     const SDL_Rect* EnemyRect();
 

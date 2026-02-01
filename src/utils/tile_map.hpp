@@ -34,10 +34,11 @@ private:
     SDL_Rect ground4 = {143, 32, 16, 16};
     std::vector<SDL_Rect*> grounds = {&ground1, &ground2, &ground3, &ground4};
 
-    std::vector<std::vector<SDL_Rect*>> map;
+    std::vector<std::vector<SDL_Rect*>> tiletype;
 
 public:
     Tilemap(uint64_t seed);
 
+    std::pair<int, int> GetRandomTile();
     void Render();
 };
