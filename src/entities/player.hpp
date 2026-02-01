@@ -1,13 +1,5 @@
 #pragma once
 
-#include <SDL.h>
-#include <SDL_image.h>
-#include <SDL_mixer.h>
-#include <iostream>
-#include <vector>
-#include <queue>
-#include <string>
-
 #include "../attacks/earth/earth_attack1.hpp"
 #include "../attacks/earth/earth_attack2.hpp"
 #include "../attacks/fire/fire_attack1.hpp"

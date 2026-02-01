@@ -1,13 +1,6 @@
 #pragma once
 
-#include <SDL.h>
-#include <SDL_image.h>
-#include <SDL_mixer.h>
 #include <iostream>
-#include <vector>
-#include <queue>
-#include <string>
-#include <random>
 
 #include "../globals/global.hpp"
 

@@ -1,13 +1,5 @@
 #pragma once
 
-#include <SDL.h>
-#include <SDL_image.h>
-#include <SDL_mixer.h>
-#include <iostream>
-#include <vector>
-#include <queue>
-#include <stdio.h>
-
 #include "../../globals/global.hpp"
 #include "../../entities/enemy.hpp"
 
