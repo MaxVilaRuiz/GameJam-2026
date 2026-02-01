@@ -4,11 +4,14 @@
 Tilemap::Tilemap() :
     srcRect({0, 0, 16, 16}),
     destRect({0, 0, displayBounds.w / 24 + 1, displayBounds.h / 16 + 1})
-{
-    SDL_Surface* temp = IMG_Load("../assets/Overworld.png");
-    tilemap_tex = SDL_CreateTextureFromSurface(renderer, temp);
-    SDL_FreeSurface(temp);
-}
+    {
+        SDL_Surface* temp = IMG_Load("../assets/Overworld.png");
+        tilemap_tex = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
+
+        TILE_SIZE.first = displayBounds.w / 24;
+        TILE_SIZE.second = displayBounds.h / 24;
+    }
 
 
 // Public functions

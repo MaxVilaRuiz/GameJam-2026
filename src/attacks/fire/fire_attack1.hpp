@@ -6,23 +6,24 @@
 #include <iostream>
 #include <vector>
 #include <queue>
-#include <string>
-#include "../globals/global.hpp"
-#include "../entities/enemy.hpp"
+#include <stdio.h>
 
-class EarthAttack1
+#include "../../globals/global.hpp"
+#include "../../entities/enemy.hpp"
+
+
+class FireAttack1
 {
 private:
     SDL_Texture* texture;
     SDL_Rect rect;
+    float speedf;
 
-    float BASE_DURATION;
-    float currentTime;
-
+    std::pair<float, float> dirf;
 public:
-    EarthAttack1(SDL_Rect spawnRect);
+    FireAttack1(SDL_Rect spawnRect, SDL_Rect DirectionRect);
 
-    ~EarthAttack1();
+    ~FireAttack1();
 
     bool IsAlive() const;
 

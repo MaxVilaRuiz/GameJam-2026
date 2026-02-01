@@ -17,26 +17,27 @@ Player::Player() :
     PRIMARY_COOLDOWN_TIME_AIR(0.4f),
     primaryCooldownWater(0.0f),
     PRIMARY_COOLDOWN_TIME_WATER(0.4f),
+    secondaryCooldownEarth(0.0f),
+    SECONDARY_COOLDOWN_TIME_EARTH(5.0f),
     maskSwitchCooldown(0.0f),
     MASK_SWITCH_COOLDOWN_TIME(1.0f)
-{
-    SDL_Surface* temp = IMG_Load("../assets/monk de frente.png");
-    texture = SDL_CreateTextureFromSurface(renderer, temp);
-    SDL_FreeSurface(temp);
+    {
+        SDL_Surface* temp = IMG_Load("../assets/monk de frente.png");
+        texture = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
 
-    temp = IMG_Load("../assets/aim.png");
-    aim_target = SDL_CreateTextureFromSurface(renderer, temp);
-    SDL_FreeSurface(temp);
+        temp = IMG_Load("../assets/aim.png");
+        aim_target = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_FreeSurface(temp);
 
-    aimTargetRect = {0, 0, 64, 64};
-    destRect = {0, 0, 128, 128};
-    posX = (float)destRect.x;
-    posY = (float)destRect.y;
+        aimTargetRect = {0, 0, 64, 64};
+        destRect = {0, 0, 128, 128};
+        posX = (float)destRect.x;
+        posY = (float)destRect.y;
 
-    currentHealth = maxHealth;
-
-    masks_textures = maskSprites();
-}
+        currentHealth = maxHealth;
+        masks_textures = maskSprites();
+    }
 
 
 // Destructor
@@ -44,8 +45,10 @@ Player::~Player()
 {
     if(texture) SDL_DestroyTexture(texture);
     if(aim_target) SDL_DestroyTexture(aim_target);
-    for(auto* a : attacks) delete a;
-    attacks.clear();
+    for(auto* a : ePrimaryAttacks) delete a;
+    ePrimaryAttacks.clear();
+    for(auto* a : eSecondaryAttacks) delete a;
+    eSecondaryAttacks.clear();
 }
 
 
@@ -154,11 +157,14 @@ void Player::Aim()
 
             float scaled = scaledMag * aimRange;
 
-            aimPosX = destRect.x + dirx * scaled;
-            aimPosY = destRect.y + diry * scaled;
+            aimPosX = (destRect.x + destRect.w/2) + dirx * scaled;
+            aimPosY = (destRect.y + destRect.h/2) + diry * scaled;
 
             aimTargetRect.x = (int)aimPosX;
             aimTargetRect.y = (int)aimPosY;
+
+            aimTargetRect.x = (int)aimPosX - aimTargetRect.w / 2;
+            aimTargetRect.y = (int)aimPosY - aimTargetRect.h / 2;
         }
         else
         {
@@ -200,13 +206,28 @@ void Player::PrimaryAttack()
         int esize = 64;
         if(maskLvl[0] >=3) esize += 25;
         
-        attacks.push_back(new EarthAttack1({aimTargetRect.x - (esize - 64)/2, aimTargetRect.y - (esize - 64)/2 , esize, esize}));
+        ePrimaryAttacks.push_back(new EarthAttack1({aimTargetRect.x - (esize - 64)/2, aimTargetRect.y - (esize - 64)/2 , esize, esize}));
         primaryCooldownEarth = PRIMARY_COOLDOWN_TIME_EARTH;
+    }
+    else if (primaryMask == 1 && primaryCooldownFire <= 0.0f && aimTargetReady){
+
+        int fsize = 40;
+        if(maskLvl[0] >=3) fsize += 20;
+        
+        attacksFire.push_back(new FireAttack1({destRect.x + destRect.w/2, destRect.y+destRect.h/2, fsize, fsize}, aimTargetRect));
+        primaryCooldownFire = PRIMARY_COOLDOWN_TIME_FIRE;
+
     }
 }
 
-void Player::SecondaryAttack() {
-    
+void Player::SecondaryAttack() 
+{
+    if(primaryMask == 0 && secondaryCooldownEarth <= 0.0f && aimTargetReady)
+    {
+        int esize = 128;
+        eSecondaryAttacks.push_back(new EarthAttack2({aimTargetRect.x - 40, aimTargetRect.y - 40, esize, esize}));
+        secondaryCooldownEarth = SECONDARY_COOLDOWN_TIME_EARTH;
+    }
 }
 
 
@@ -230,10 +251,32 @@ int Player::GetCurrentHealth()
 
 float Player::GetPrimaryCooldown()
 {
-    return primaryCooldownEarth;
+    switch(primaryMask)
+    {
+        case 0:
+            return primaryCooldownEarth;
+            break;
+        case 1:
+            return primaryCooldownFire;
+            break;
+        case 2:
+            return primaryCooldownAir;
+            break;
+        case 3:
+            return primaryCooldownWater;
+            break;
+    }
+
+    return 0.0;
 }
 
-void Player::Update(double deltaTime) {
+float Player::GetSecondaryCooldown()
+{
+    return secondaryCooldownEarth;
+}
+
+void Player::Update(double deltaTime) 
+{
     int tileW = displayBounds.w / 24;
     int tileH = displayBounds.h / 16;
     int gridX = (destRect.x + destRect.w / 2) / tileW;
@@ -247,15 +290,37 @@ void Player::Update(double deltaTime) {
         damageCooldown -= deltaTime;
     }
     if(primaryCooldownEarth > 0.0f) primaryCooldownEarth -= deltaTime;
+    if(secondaryCooldownEarth > 0.0f) secondaryCooldownEarth -= deltaTime;
+    if(primaryCooldownFire > 0.0f) primaryCooldownFire -= deltaTime;
     if(maskSwitchCooldown > 0.0f) maskSwitchCooldown -= deltaTime;
 
-    for(auto it = attacks.begin(); it != attacks.end();)
+    for(auto it = ePrimaryAttacks.begin(); it != ePrimaryAttacks.end();)
     {
         (*it)->Update(deltaTime);
         if(!(*it)->IsAlive())
         {
             delete *it;
-            it = attacks.erase(it);
+            it = ePrimaryAttacks.erase(it);
+        }
+        else ++it;
+    }
+    for(auto it = eSecondaryAttacks.begin(); it != eSecondaryAttacks.end();)
+    {
+        (*it)->Update(deltaTime);
+        if(!(*it)->IsAlive())
+        {
+            delete *it;
+            it = eSecondaryAttacks.erase(it);
+        }
+        else ++it;
+    }
+    for(auto it = attacksFire.begin(); it != attacksFire.end();)
+    {
+        (*it)->Update(deltaTime);
+        if(!(*it)->IsAlive())
+        {
+            delete *it;
+            it = attacksFire.erase(it);
         }
         else ++it;
     }
@@ -282,7 +347,8 @@ void Player::Update(double deltaTime) {
         PrimaryAttack();
     }
 
-    if(SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT)){
+    if(SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT) || 
+    (controller && SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERLEFT) > 1000)){
         SecondaryAttack();
     }
 
@@ -300,7 +366,19 @@ void Player::Update(double deltaTime) {
 void Player::Render()
 {
     if(aimTargetReady) SDL_RenderCopy(renderer, aim_target, NULL, &aimTargetRect);
-    for(auto* a : attacks) a->Render();
+    for(auto* a : ePrimaryAttacks) a->Render();
+    for(auto* a : eSecondaryAttacks) a->Render();
+    for(auto* a : attacksFire) a->Render();
+    
+    if(damageCooldown > 0.0f)
+    {
+        SDL_SetTextureColorMod(texture, 255, 100, 100);
+    }
+    else
+    {
+        SDL_SetTextureColorMod(texture, 255, 255, 255);
+    }
+
     SDL_RenderCopy(renderer, texture, NULL, &destRect);
 
     SDL_RenderCopy(renderer, masks_textures[primaryMask], NULL, &masks_bounds[primaryMask]);

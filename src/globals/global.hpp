@@ -24,4 +24,6 @@ extern Mix_Music* shopTheme;
 extern std::vector<std::vector<int>> map;
 extern std::pair<int, int> playerPos;
 
+extern std::pair<int, int> TILE_SIZE;
+
 extern std::vector<Enemy*> enemies;

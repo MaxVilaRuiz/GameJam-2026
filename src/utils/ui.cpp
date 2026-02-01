@@ -26,6 +26,14 @@ UI::UI(Player* _player)
     icon_secatt_kbm = SDL_CreateTextureFromSurface(renderer, temp);
     SDL_FreeSurface(temp);
 
+    temp = IMG_Load("../assets/icon_atm_cont.png");
+    icon_mainatt_cont = SDL_CreateTextureFromSurface(renderer, temp);
+    SDL_FreeSurface(temp);
+
+    temp = IMG_Load("../assets/icon_ats_cont.png");
+    icon_secatt_cont = SDL_CreateTextureFromSurface(renderer, temp);
+    SDL_FreeSurface(temp);
+
     heartsStartPos = {32, 32, 64, 64};
     heartsRect = heartsStartPos;
     hearts = std::vector<int>(5, 0);
@@ -75,9 +83,24 @@ void UI::Render()
     
     heartsRect.x = heartsStartPos.x;
 
-    if(player->GetPrimaryCooldown() > 0.0f) SDL_SetTextureAlphaMod(icon_mainatt_kbm, 100);
-    else SDL_SetTextureAlphaMod(icon_mainatt_kbm, 255);
+    if(!controller)
+    {
+        if(player->GetPrimaryCooldown() > 0.0f) SDL_SetTextureAlphaMod(icon_mainatt_kbm, 100);
+        else SDL_SetTextureAlphaMod(icon_mainatt_kbm, 255);
+        SDL_RenderCopy(renderer, icon_mainatt_kbm, NULL, &mainAttRect);
 
-    SDL_RenderCopy(renderer, icon_mainatt_kbm, NULL, &mainAttRect);
-    SDL_RenderCopy(renderer, icon_secatt_kbm, NULL, &secAttRect);
+        if(player->GetSecondaryCooldown() > 0.0f) SDL_SetTextureAlphaMod(icon_secatt_kbm, 100);
+        else SDL_SetTextureAlphaMod(icon_secatt_kbm, 255);
+        SDL_RenderCopy(renderer, icon_secatt_kbm, NULL, &secAttRect);
+    }
+    else
+    {
+        if(player->GetPrimaryCooldown() > 0.0f) SDL_SetTextureAlphaMod(icon_mainatt_cont, 100);
+        else SDL_SetTextureAlphaMod(icon_mainatt_cont, 255);
+        SDL_RenderCopy(renderer, icon_mainatt_cont, NULL, &mainAttRect);
+
+        if(player->GetSecondaryCooldown() > 0.0f) SDL_SetTextureAlphaMod(icon_secatt_cont, 100);
+        else SDL_SetTextureAlphaMod(icon_secatt_cont, 255);
+        SDL_RenderCopy(renderer, icon_secatt_cont, NULL, &secAttRect);
+    }
 }

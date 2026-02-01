@@ -26,7 +26,9 @@ target_sources(${APP} PRIVATE
     src/main.cpp
     src/globals/global.cpp
     src/entities/enemy.cpp
-    src/attacks/earth_attack.cpp
+    src/attacks/earth/earth_attack1.cpp
+    src/attacks/earth/earth_attack2.cpp
+    src/attacks/fire/fire_attack1.cpp
     src/entities/player.cpp
     src/utils/tile_map.cpp
     src/utils/ui.cpp
