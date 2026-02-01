@@ -44,6 +44,8 @@ public:
 
     std::pair<float, float> BFS();
 
+    std::pair<float, float> GetPos();
+
     void TakeDamage(int amount);
 
     bool IsAlive() const;
