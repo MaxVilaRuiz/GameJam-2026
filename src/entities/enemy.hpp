@@ -5,6 +5,7 @@
 #include <SDL_mixer.h>
 #include <vector>
 #include <queue>
+#include <iostream>
 
 #include "../globals/global.hpp"
 

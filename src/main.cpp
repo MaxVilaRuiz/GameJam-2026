@@ -15,7 +15,6 @@
 #include "./utils/tile_map.hpp"
 #include "./utils/ui.hpp"
 
-
 int main()
 {
     if(SDL_Init(SDL_INIT_EVERYTHING) != 0)
@@ -74,7 +73,7 @@ int main()
     map = std::vector<std::vector<int>>(16, std::vector<int>(24, 0));
 
     Player* player = new Player();
-    Tilemap* tilemap = new Tilemap();
+    Tilemap* tilemap = new Tilemap(time(NULL));
     enemies.push_back(new Enemy());
     
     UI* canvas = new UI(player);

@@ -18,10 +18,14 @@ private:
     SDL_Texture* texture;
     SDL_Texture* aim_target;
 
+    std::vector<SDL_Texture*> sprites;
+
     SDL_Rect aimTargetRect;
     SDL_Rect destRect;
 
     bool aimTargetReady;
+
+    int dirIndex;
 
     float posX, posY;
     const float speed = 250.0f;

@@ -7,18 +7,18 @@ Enemy::Enemy() :
     inPlayerRange(false),
     damageTime(0.0f)
 {
-    destRect = {100, 100, 128, 128};
+    destRect = {displayBounds.w/2, displayBounds.h/2, 128, 128};
     posX = (float)destRect.x;
     posY = (float)destRect.y;
     health = 4;
 
-    sprites = std::vector<SDL_Texture*>(8);
-    std::vector<std::string> names = {"zombie_mask_right", "zombie_mask_dright", "zombie_mask_down", "zombie_mask_dleft",
-        "zombie_mask_down", "zombie_mask_down", "zombie_mask_down", "zombie_mask_down"};
+    sprites = std::vector<SDL_Texture*>(8, nullptr);
+    std::vector<std::string> names = {"zombie_mask_right.png", "zombie_mask_dright.png", "zombie_mask_down.png", "zombie_mask_dleft.png",
+        "zombie_mask_left.png", "zombie_mask_uleft.png", "zombie_mask_up.png", "zombie_mask_uright.png"};
     for(int i = 0; i < 8; i++)
     {
-        SDL_Surface* temp = IMG_Load("../assets/zombie_mask_down.png");
-        texture = SDL_CreateTextureFromSurface(renderer, temp);
+        SDL_Surface* temp = IMG_Load(((std::string)SDL_GetBasePath() + "../assets/zombie/" + names[i]).c_str());
+        sprites[i] = SDL_CreateTextureFromSurface(renderer, temp);
         SDL_FreeSurface(temp);
     }
 }
@@ -159,6 +159,8 @@ void Enemy::Update(double deltaTime)
         float angle = atan2f(dir.second, dir.first);
         if(angle < 0.0) angle += 2.0 * M_PI;
         int dirIndex = (int)((angle + M_PI / 8) / (M_PI / 4)) % 8;
+
+        texture = sprites[dirIndex];
     }
 
     int dx = destRect.x - playerPos.first;

@@ -37,6 +37,18 @@ Player::Player() :
 
         currentHealth = maxHealth;
         masks_textures = maskSprites();
+
+        sprites = std::vector<SDL_Texture*>(8, nullptr);
+        std::vector<std::string> names = {"monk ladeado.png", "monk esquerra davant.png", "monk de frente.png", "monk ladeat davant dreta.png",
+            "monk a la esquerra.png", "monk espalda esqera.png", "monk espaldote.png", "monk espalda dreta.png"};
+        for(int i = 0; i < 8; i++)
+        {
+            SDL_Surface* temp = IMG_Load(((std::string)SDL_GetBasePath() + "../assets/monk/" + names[i]).c_str());
+            sprites[i] = SDL_CreateTextureFromSurface(renderer, temp);
+            SDL_FreeSurface(temp);
+        }
+
+        texture = sprites[2];
     }
 
 
@@ -98,6 +110,11 @@ void Player::Movement(double deltaTime)
 
             destRect.x = (int)posX;
             destRect.y = (int)posY;
+
+            float angle = atan2f(diry, dirx);
+            if(angle < 0.0) angle += 2.0 * M_PI;
+            dirIndex = (int)((angle + M_PI / 8) / (M_PI / 4)) % 8;
+            texture = sprites[dirIndex];
         }
     }
     else
@@ -125,6 +142,11 @@ void Player::Movement(double deltaTime)
 
             destRect.x = (int)posX;
             destRect.y = (int)posY;
+
+            float angle = atan2f(fy, fx);
+            if(angle < 0.0) angle += 2.0 * M_PI;
+            dirIndex = (int)((angle + M_PI / 8) / (M_PI / 4)) % 8;
+            texture = sprites[dirIndex];
         }
     }
 
@@ -379,7 +401,13 @@ void Player::Render()
         SDL_SetTextureColorMod(texture, 255, 255, 255);
     }
 
+    if(dirIndex >= 5) {
+        SDL_RenderCopy(renderer, masks_textures[primaryMask], NULL, &masks_bounds[primaryMask]);
+    }
+
     SDL_RenderCopy(renderer, texture, NULL, &destRect);
 
-    SDL_RenderCopy(renderer, masks_textures[primaryMask], NULL, &masks_bounds[primaryMask]);
+    if(dirIndex < 5) {
+        SDL_RenderCopy(renderer, masks_textures[primaryMask], NULL, &masks_bounds[primaryMask]);
+    }
 }
