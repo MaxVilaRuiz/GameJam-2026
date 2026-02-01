@@ -13,45 +13,82 @@ Tilemap::Tilemap(uint64_t seed) :
         TILE_SIZE.first = displayBounds.w / 24;
         TILE_SIZE.second = displayBounds.h / 16;
 
-        tiletype = std::vector<std::vector<SDL_Rect*>>(16, std::vector<SDL_Rect*>(24));
+        randomroom = std::vector<std::vector<SDL_Rect*>>(16, std::vector<SDL_Rect*>(24));
 
-        int chestpos = -1;
+        if(currentPhase == "combat") GenerateCombatRoom();
+        else if(currentPhase == "shop") GenerateShopRoom();
+        roomtype = currentPhase;
+    }
 
-        if(rand() % 100 < 30)
+// Private functions
+void Tilemap::GenerateCombatRoom()
+{
+    int chestpos = -1;
+
+    if(rand() % 100 < 30)
+    {
+        do {
+            chestpos = rand() % (24 * 16);
+        } while ((chestpos / 24) == 0 || (chestpos / 24) == 15);
+    }
+
+    for(int i = 0; i < 16; i++)
+    {
+        for(int j = 0; j < 24; j++)
         {
-            do {
-                chestpos = rand() % (24 * 16);
-            } while ((chestpos / 24) == 0 || (chestpos / 24) == 15);
-        }
-
-        for(int i = 0; i < 16; i++)
-        {
-            for(int j = 0; j < 24; j++)
+            if(i*24+j == chestpos)
             {
-                if(i*24+j == chestpos)
-                {
-                    tiletype[i][j] = &chest;
-                    continue;
-                }
+                randomroom[i][j] = &chest;
+                continue;
+            }
 
-                if(i == 0)
-                {
-                    int r = rand() % walls.size();
-                    tiletype[i][j] = walls[r];
-                }
-                else if(i == 15)
-                {
-                    tiletype[i][j] = &wallr1;
-                }
-                else
-                {
-                    int r = rand() % grounds.size();
-                    tiletype[i][j] = grounds[r];
-                }
+            if(i == 0)
+            {
+                int r = rand() % walls.size();
+                randomroom[i][j] = walls[r];
+            }
+            else if(i == 15)
+            {
+                randomroom[i][j] = &wallr1;
+            }
+            else
+            {
+                int r = rand() % grounds.size();
+                randomroom[i][j] = grounds[r];
             }
         }
     }
 
+    staircase = false;
+}
+
+void Tilemap::GenerateShopRoom()
+{
+    for(int i = 0; i < 16; i++)
+    {
+        for(int j = 0; j < 24; j++)
+        {
+            if(i == 0)
+            {
+                int r = rand() % walls.size();
+                randomroom[i][j] = walls[r];
+            }
+            else if(i == 15)
+            {
+                randomroom[i][j] = &wallr1;
+            }
+            else
+            {
+                int r = rand() % grounds.size();
+                randomroom[i][j] = grounds[r];
+            }
+        }
+    }
+
+    randomroom[9][8] = &srcStairRect;
+    staircaseRect = {8 * TILE_SIZE.first, 9 * TILE_SIZE.second, TILE_SIZE.first, TILE_SIZE.second};
+    staircase = true;
+}
 
 // Public functions
 void Tilemap::Render()
@@ -59,7 +96,7 @@ void Tilemap::Render()
     for(int i = 0; i < 16; i++) {
         for(int j = 0; j < 24; j++)
         {
-            SDL_RenderCopy(renderer, tilemap_tex, tiletype[i][j], &destRect);
+            SDL_RenderCopy(renderer, tilemap_tex, randomroom[i][j], &destRect);
             destRect.x += displayBounds.w / 24 + 1;
         }
         destRect.x = 0;
@@ -87,4 +124,33 @@ std::pair<int, int> Tilemap::GetRandomTile()
     int y = row * ty + ty / 2;
 
     return {x, y};
+}
+
+void Tilemap::GenerateStaircase()
+{
+    std::pair<int, int> pixel = GetRandomTile();
+    int col = pixel.first / TILE_SIZE.first;
+    int row = pixel.second / TILE_SIZE.second;
+    if(col < 0 || col >= 24 || row < 0 || row >= 16)
+    {
+        std::cerr << "[tilemap] Out-of-bounds from GetRandomTile, skipping\n";
+        return;
+    }
+    randomroom[row][col] = &srcStairRect;
+    staircaseRect = {col * TILE_SIZE.first, row * TILE_SIZE.second, TILE_SIZE.first, TILE_SIZE.second};
+}
+
+void Tilemap::Update()
+{
+    if(currentPhase == "combat" && enemies.empty() && !staircase)
+    {
+        GenerateStaircase();
+        staircase = true;
+    }
+}
+
+SDL_Rect* Tilemap::StaircaseRect()
+{
+    if(!staircase) return nullptr;
+    return &staircaseRect;
 }

@@ -94,6 +94,8 @@ public:
 
     float GetSecondaryCooldown();
 
+    void SetPosition(int x, int y);
+
     void Update(double deltaTime);
 
     void Render();
