@@ -9,6 +9,8 @@
 #include <string>
 
 #include "../attacks/earth/earth_attack1.hpp"
+#include "../attacks/earth/earth_attack2.hpp"
+#include "../attacks/fire/fire_attack1.hpp"
 
 class Player
 {
@@ -38,7 +40,9 @@ private:
     std::vector<SDL_Texture*> masks_textures;
     std::vector<SDL_Rect> masks_bounds;
 
-    std::vector<EarthAttack1*> attacks;
+    std::vector<FireAttack1*> attacksFire;
+    std::vector<EarthAttack1*> ePrimaryAttacks;
+    std::vector<EarthAttack2*> eSecondaryAttacks;
     float primaryCooldownEarth;
     float PRIMARY_COOLDOWN_TIME_EARTH;
     float primaryCooldownFire;
@@ -47,6 +51,9 @@ private:
     float PRIMARY_COOLDOWN_TIME_AIR;
     float primaryCooldownWater;
     float PRIMARY_COOLDOWN_TIME_WATER;
+
+    float secondaryCooldownEarth;
+    float SECONDARY_COOLDOWN_TIME_EARTH;
 
     float maskSwitchCooldown;
     float MASK_SWITCH_COOLDOWN_TIME;
@@ -76,6 +83,8 @@ public:
     int GetCurrentHealth();
 
     float GetPrimaryCooldown();
+
+    float GetSecondaryCooldown();
 
     void Update(double deltaTime);
 
