@@ -8,7 +8,7 @@ Player::Player() :
     damageCooldown(0.0f),
     maskLvl({0, 0, 0, 0}),
     primaryMask(0),
-    secondaryMask(2),
+    secondaryMask(3),
     primaryCooldownEarth(0.0f),
     PRIMARY_COOLDOWN_TIME_EARTH(0.4f),
     primaryCooldownFire(0.0f),
@@ -16,7 +16,7 @@ Player::Player() :
     primaryCooldownAir(0.0f),
     PRIMARY_COOLDOWN_TIME_AIR(0.4f),
     primaryCooldownWater(0.0f),
-    PRIMARY_COOLDOWN_TIME_WATER(0.4f),
+    PRIMARY_COOLDOWN_TIME_WATER(1.0f),
     secondaryCooldownEarth(0.0f),
     SECONDARY_COOLDOWN_TIME_EARTH(5.0f),
     maskSwitchCooldown(0.0f),
@@ -245,6 +245,13 @@ void Player::PrimaryAttack()
         attacksAir.push_back(new AirAttack1({destRect.x + destRect.w/2, destRect.y+destRect.h/2, asize, asize}, aimTargetRect));
         primaryCooldownAir = PRIMARY_COOLDOWN_TIME_AIR;
     }
+    else if (primaryMask == 3 && primaryCooldownWater <= 0.0f && aimTargetReady) {
+        int wsize = 40;
+        if(maskLvl[0] >=3) wsize += 20;
+        
+        attacksWater.push_back(new WaterAttack1({destRect.x + destRect.w/2, destRect.y+destRect.h/2, wsize, wsize}, aimTargetRect));
+        primaryCooldownWater = PRIMARY_COOLDOWN_TIME_WATER;
+    }
 }
 
 void Player::SecondaryAttack() 
@@ -319,6 +326,7 @@ void Player::Update(double deltaTime)
     if(secondaryCooldownEarth > 0.0f) secondaryCooldownEarth -= deltaTime;
     if(primaryCooldownFire > 0.0f) primaryCooldownFire -= deltaTime;
     if(primaryCooldownAir > 0.0f) primaryCooldownAir -= deltaTime;
+    if(primaryCooldownWater > 0.0f) primaryCooldownWater -= deltaTime;
     if(maskSwitchCooldown > 0.0f) maskSwitchCooldown -= deltaTime;
 
     for(auto it = ePrimaryAttacks.begin(); it != ePrimaryAttacks.end();)
@@ -358,6 +366,16 @@ void Player::Update(double deltaTime)
         {
             delete *it;
             it = attacksAir.erase(it);
+        }
+        else ++it;
+    }
+    for(auto it = attacksWater.begin(); it != attacksWater.end();)
+    {
+        (*it)->Update(deltaTime);
+        if(!(*it)->IsAlive())
+        {
+            delete *it;
+            it = attacksWater.erase(it);
         }
         else ++it;
     }
@@ -408,6 +426,7 @@ void Player::Render()
     for(auto* a : eSecondaryAttacks) a->Render();
     for(auto* a : attacksFire) a->Render();
     for(auto* a : attacksAir) a->Render();
+    for(auto* a : attacksWater) a->Render();
     
     if(damageCooldown > 0.0f)
     {

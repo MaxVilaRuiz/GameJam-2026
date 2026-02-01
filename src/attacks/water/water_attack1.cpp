@@ -1,40 +1,47 @@
-#include "air_attack1.hpp"
+#include "water_attack1.hpp"
 
 
 // Constructor
-AirAttack1::AirAttack1(SDL_Rect spawnRect, SDL_Rect DirectionRect) :
-    speedf(467)
+WaterAttack1::WaterAttack1(SDL_Rect spawnRect, SDL_Rect DirectionRect) :
+    speedf(467),
+    direction_rect(DirectionRect),
+    BASE_DURATION(1.0f)
 {
-    SDL_Surface* temp = IMG_Load("../assets/p_air.png");
+    SDL_Surface* temp = IMG_Load("../assets/p_water1.png");
     texture = SDL_CreateTextureFromSurface(renderer, temp);
     SDL_FreeSurface(temp);
     rect = spawnRect;
     float mag = sqrtf((spawnRect.x-DirectionRect.x) * (spawnRect.x-DirectionRect.x) + (spawnRect.y-DirectionRect.y)*(spawnRect.y-DirectionRect.y));
     dirf.first = (DirectionRect.x - spawnRect.x) / mag;
     dirf.second = (DirectionRect.y - spawnRect.y) / mag;
+    currentTime = BASE_DURATION;
 }
 
 
 // Destructor
-AirAttack1::~AirAttack1()
+WaterAttack1::~WaterAttack1()
 {
     if(texture) SDL_DestroyTexture(texture);
 }
 
 
 // Public functions
-bool AirAttack1::IsAlive() const { 
-    return rect.x > -10 & rect.y > -10 & rect.x < 2250 & rect.y < 1250; 
+bool WaterAttack1::IsAlive() const { 
+    return (rect.x > -10 & rect.y > -10 & rect.x < 2250 & rect.y < 1250) && (currentTime > 0.0f); 
 } 
 
-void AirAttack1::Update(double deltaTime)
+void WaterAttack1::Update(double deltaTime)
 {
-
     float aux = deltaTime * speedf * dirf.first;
     float auy = deltaTime * speedf * dirf.second;
 
-    rect.x += (int)aux;
-    rect.y += (int)auy;
+    if (SDL_HasIntersection(&rect, &direction_rect)) {
+        currentTime -= deltaTime;
+    }
+    else {
+        rect.x += (int)aux;
+        rect.y += (int)auy;
+    }
 
     for (int i = 0; i < enemies.size(); ++i) {
         if (enemies[i]->InPlayerRange()) {
@@ -46,7 +53,7 @@ void AirAttack1::Update(double deltaTime)
     }
 }
 
-void AirAttack1::Render()
+void WaterAttack1::Render()
 {
     float angle = atan2(dirf.second, dirf.first) * 180.0f / M_PI;
     if (angle < 0) angle += 360.0f;
